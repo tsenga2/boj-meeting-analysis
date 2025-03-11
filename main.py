@@ -224,7 +224,7 @@ def download_boj_pdfs(years=None):
             
             # Debug: Print all links on the page
             print(f"--- All links on page for year {year} ---")
-             for link in soup.find_all('a'):
+            for link in soup.find_all('a'):
                 href = link.get('href', '')
                 text = link.get_text()
                 print(f"Text: {text} | Href: {href}")
