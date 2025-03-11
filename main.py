@@ -136,7 +136,7 @@ def download_boj_pdfs(years=None):
     Download PDFs of BOJ meeting minutes for specified years
     """
     if not years:
-        years = range(2024, 2015)  # Default range
+        years = range(2024, 2025)  # Default range
     
     session = requests.Session()
     base_url = "https://www.boj.or.jp"
