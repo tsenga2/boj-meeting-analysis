@@ -202,9 +202,19 @@ def get_boj_meeting_dates(start_year=1998, end_year=2014, output_dir="."):
 def download_boj_pdfs(years=None):
     """
     Download PDFs of BOJ meeting minutes for specified years
+    
+    Parameters:
+    -----------
+    years : list or range
+        Years to download PDFs for (defaults to 1998-2014)
+    
+    Returns:
+    --------
+    int
+        Number of new PDFs downloaded
     """
     if not years:
-        years = range(1998, 2014)  # Default range
+        years = range(1998, 2015)  # Default range covers years with consistent structure
     
     session = requests.Session()
     base_url = "https://www.boj.or.jp"
@@ -221,7 +231,24 @@ def download_boj_pdfs(years=None):
             response.raise_for_status()
             
             soup = BeautifulSoup(response.content, 'html.parser')
-            pdf_links = soup.find_all('a', href=re.compile(r'/mopo/mpmsche_minu/record_\d{4}/gjrk\d{6}a\.pdf$'))
+            
+            # Find all PDF links - more generic approach to catch various PDF formats
+            pdf_links = []
+            
+            # Method 1: Look for links with PDF in the text or href
+            for link in soup.find_all('a'):
+                href = link.get('href', '')
+                text = link.get_text().strip()
+                
+                if (href.endswith('.pdf') or '[PDF' in text) and '/mopo/' in href:
+                    pdf_links.append(link)
+                elif href.endswith('.pdf') and not href.startswith('http'):
+                    # Relative links
+                    pdf_links.append(link)
+            
+            if not pdf_links:
+                # Method 2: Find PDF links using pattern matching on href attributes
+                pdf_links = soup.find_all('a', href=re.compile(r'\.pdf$'))
             
             if not pdf_links:
                 print(f"No PDFs found for year {year}")
@@ -231,8 +258,25 @@ def download_boj_pdfs(years=None):
             year_downloaded = 0
             
             for link in tqdm(pdf_links, desc=f"Year {year}"):
-                pdf_url = f"{base_url}{link['href']}"
-                pdf_name = os.path.basename(link['href'])
+                href = link.get('href', '')
+                
+                # Handle relative URLs
+                if href.startswith('http'):
+                    pdf_url = href
+                elif href.startswith('/'):
+                    pdf_url = f"{base_url}{href}"
+                else:
+                    # Relative to current directory
+                    pdf_url = f"{base_url}/mopo/mpmsche_minu/record_{year}/{href}"
+                
+                # Extract filename from URL
+                pdf_name = os.path.basename(href)
+                
+                # If no extension, add .pdf
+                if not pdf_name.endswith('.pdf'):
+                    pdf_name = f"{pdf_name}.pdf"
+                
+                # Add year prefix for organization
                 filename = os.path.join(PDF_DIR, f"{year}_{pdf_name}")
                 
                 if os.path.exists(filename):
