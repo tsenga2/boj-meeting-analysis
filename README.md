@@ -21,6 +21,40 @@ The analysis combines text mining of BOJ meeting minutes with financial market d
 └── README.md                         # This file
 ```
 
+## Data Sources
+
+- BOJ Meeting Minutes: Downloaded from the Bank of Japan website
+- Financial Market Data:
+  - Nikkei 225 Index (^N225) from Yahoo Finance
+  - USD/JPY exchange rate (DEXJPUS) from FRED
+  - Japan Government Bond yields (IRLTLT01JPM156N) from FRED
+
+## Analysis Pipeline
+
+1. **Meeting Date Collection**
+   - Scrape and parse BOJ monetary policy meeting dates from the BOJ website
+
+2. **Meeting PDF Documents**
+   - Download PDF files of BOJ meeting minutes
+   - **This step is critical** - without the PDFs, the text analysis cannot proceed
+
+3. **Text Processing and Similarity Analysis**
+   - Convert PDFs to images for OCR processing
+   - Extract text using Tesseract OCR with Japanese language support
+   - Process text with MeCab for Japanese tokenization
+   - Extract key economic term mentions (inflation, deflation, interest rates, etc.)
+   - Calculate text similarity between consecutive meetings using TF-IDF and cosine similarity
+
+4. **Market Data Analysis**
+   - Fetch financial market data (Nikkei 225, USD/JPY, JGB yields)
+   - Calculate market statistics between consecutive BOJ meetings
+   - Measure returns, volatility, and trend metrics
+
+5. **Combined Analysis**
+   - Merge text similarity data with market statistics
+   - Calculate correlations between text similarity and market metrics
+   - Group meetings by similarity level and analyze market behavior patterns
+
 ## Setup and Usage
 
 The project can be run either locally or on Google Colab.
@@ -89,7 +123,7 @@ The project can be run either locally or on Google Colab.
    import os
    import sys
    sys.path.append('.')
-   from main import get_boj_meeting_dates, analyze_meeting_texts, fetch_market_data, calculate_inter_meeting_stats, combine_text_and_market_analysis, analyze_similarity_market_relationship
+   from main import get_boj_meeting_dates, download_boj_pdfs, analyze_meeting_texts, fetch_market_data, calculate_inter_meeting_stats, combine_text_and_market_analysis, analyze_similarity_market_relationship
 
    # Set paths to Google Drive
    BASE_DIR = '/content/drive/MyDrive/BOJ_Analysis'
@@ -104,33 +138,58 @@ The project can be run either locally or on Google Colab.
    print("Step 1: Get BOJ meeting dates")
    meeting_dates = get_boj_meeting_dates()
    
-   print("Step 2: Analyze meeting texts")
+   print("Step 2: Download BOJ meeting PDFs")
+   download_boj_pdfs(years=range(2020, 2025))  # Adjust year range as needed
+   
+   print("Step 3: Analyze meeting texts")
    text_df = analyze_meeting_texts(pdf_dir=PDF_DIR)
    
-   print("Step 3: Fetch market data")
+   print("Step 4: Fetch market data")
    market_data = fetch_market_data()
    
-   print("Step 4: Calculate market statistics")
+   print("Step 5: Calculate market statistics")
    market_stats = calculate_inter_meeting_stats(market_data, meeting_dates)
    
-   print("Step 5: Combine analyses")
+   print("Step 6: Combine analyses")
    combined_df = combine_text_and_market_analysis(text_df, market_stats)
    
-   print("Step 6: Analyze relationship")
+   print("Step 7: Analyze relationship")
    correlation_df, group_stats = analyze_similarity_market_relationship(combined_df)
    
    print("Analysis complete!")
    ```
+
+## Requirements
+
+### Python Libraries
+- Core: `pandas`, `numpy`, `matplotlib`, `seaborn`, `scikit-learn`
+- Web scraping: `requests`, `beautifulsoup4`
+- Financial data: `yfinance`, `pandas-datareader`
+- PDF processing: `pdf2image`, `pytesseract`
+- Japanese text processing: `MeCab`
+
+### External Dependencies
+- Tesseract OCR with Japanese language support
+- MeCab Japanese morphological analyzer
+- Poppler (for PDF to image conversion)
 
 ## Output
 
 The analysis generates the following in the `BOJ_Analysis/output` directory:
 
 1. `boj_meeting_dates.csv` - List of all BOJ meeting dates
-2. `boj_text_analysis.csv` - Text similarity analysis results
-3. `market_data.csv` - Market data
-4. `boj_combined_analysis.csv` - Combined analysis
-5. Visualization files:
-   - `similarity_market_correlation.png`
-   - `similarity_market_scatterplots.png`
-   - `similarity_group_analysis.png`
+2. `boj_text_analysis.csv` - Text similarity analysis results including similarity metrics
+3. `market_data.csv` - Raw market data
+4. `boj_market_stats.csv` - Inter-meeting market statistics
+5. `boj_combined_analysis.csv` - Combined text and market data
+6. Visualization files:
+   - `text_similarity_analysis.png` - Text similarity between meetings and key term frequencies
+   - `similarity_market_correlation.png` - Correlation between text similarity and market metrics
+   - `similarity_market_scatterplots.png` - Scatter plots of similarity vs. market outcomes
+   - `similarity_group_analysis.png` - Market statistics grouped by similarity level
+
+## Notes
+
+- Japanese text processing requires specialized libraries and configurations
+- The PDF download step is essential - without the PDFs, text analysis cannot proceed
+- For best results, ensure Tesseract OCR is properly configured for Japanese language
