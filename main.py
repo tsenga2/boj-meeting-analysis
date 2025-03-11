@@ -295,7 +295,7 @@ def process_pdf_with_ocr(pdf_path, max_pages=5):
         print(f"Error processing PDF {pdf_path}: {str(e)}")
         return ""
 
-def analyze_meeting_texts(pdf_dir=PDF_DIR, max_pages=1):
+def analyze_meeting_texts(pdf_dir=PDF_DIR, max_pages=5):
     """
     Process BOJ meeting PDFs and calculate text similarities
     """
@@ -743,7 +743,7 @@ def main():
     # Step 3: Analyze meeting texts and calculate similarities if Japanese text processing is available
     print("\nSTEP 3: Analyzing meeting texts")
     if JAPANESE_TEXT_AVAILABLE:
-        text_df = analyze_meeting_texts(max_pages=1)  # Adjust max_pages as needed
+        text_df = analyze_meeting_texts(max_pages=5)  # Adjust max_pages as needed
     else:
         print("Skipping text analysis (Japanese text processing modules not available)")
         

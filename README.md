@@ -35,11 +35,12 @@ The analysis combines text mining of BOJ meeting minutes with financial market d
    - Scrape and parse BOJ monetary policy meeting dates from the BOJ website
 
 2. **Meeting PDF Documents**
-   - Download PDF files of BOJ meeting minutes
+   - Download PDF files of BOJ meeting minutes (from years 1998-2014)
    - **This step is critical** - without the PDFs, the text analysis cannot proceed
+   - Note: The website structure for BOJ documents changes after 2014
 
 3. **Text Processing and Similarity Analysis**
-   - Convert PDFs to images for OCR processing
+   - Convert PDFs to images for OCR processing (limited to 5 pages per document by default)
    - Extract text using Tesseract OCR with Japanese language support
    - Process text with MeCab for Japanese tokenization
    - Extract key economic term mentions (inflation, deflation, interest rates, etc.)
@@ -139,10 +140,10 @@ The project can be run either locally or on Google Colab.
    meeting_dates = get_boj_meeting_dates()
    
    print("Step 2: Download BOJ meeting PDFs")
-   download_boj_pdfs(years=range(2020, 2025))  # Adjust year range as needed
+   download_boj_pdfs(years=range(1998, 2014))  # For PDF downloads the website structure changes after 2014
    
    print("Step 3: Analyze meeting texts")
-   text_df = analyze_meeting_texts(pdf_dir=PDF_DIR)
+   text_df = analyze_meeting_texts(pdf_dir=PDF_DIR, max_pages=5)  # Limit to 5 pages per document for faster processing
    
    print("Step 4: Fetch market data")
    market_data = fetch_market_data()
@@ -193,3 +194,5 @@ The analysis generates the following in the `BOJ_Analysis/output` directory:
 - Japanese text processing requires specialized libraries and configurations
 - The PDF download step is essential - without the PDFs, text analysis cannot proceed
 - For best results, ensure Tesseract OCR is properly configured for Japanese language
+- The BOJ website structure changes after 2014, so the PDF download function is configured to work with years 1998-2014
+- Processing is limited to 5 pages per document by default to improve performance; adjust the `max_pages` parameter in `analyze_meeting_texts()` if needed
