@@ -72,7 +72,7 @@ def get_boj_meeting_dates():
 
     all_dates = []
     base_url = "https://www.boj.or.jp"
-    years = range(1998, 2025)  # Adjust end year as needed
+    years = range(2024, 2025)  # Adjust end year as needed
 
     for year in years:
         url = f"{base_url}/en/mopo/mpmsche_minu/minu_{year}/index.htm"
@@ -136,7 +136,7 @@ def download_boj_pdfs(years=None):
     Download PDFs of BOJ meeting minutes for specified years
     """
     if not years:
-        years = range(1998, 2015)  # Default range
+        years = range(2024, 2015)  # Default range
     
     session = requests.Session()
     base_url = "https://www.boj.or.jp"
@@ -351,7 +351,7 @@ def analyze_meeting_texts(pdf_dir=PDF_DIR, max_pages=5):
 # Part 3: Market Data Analysis
 #############################################################
 
-def fetch_market_data(start_date='1998-01-01', end_date=None):
+def fetch_market_data(start_date='2024-01-01', end_date=None):
     """
     Fetch market data from Yahoo Finance and FRED
     """
@@ -662,8 +662,8 @@ def main():
         if not IN_COLAB:  # Only ask if running locally
             download_choice = input("Do you want to download more BOJ meeting PDFs? (y/n): ").strip().lower()
             if download_choice == 'y':
-                start_year = int(input("Enter start year (1998-2014): "))
-                end_year = int(input("Enter end year (1998-2014): "))
+                start_year = int(input("Enter start year (2024-2014): "))
+                end_year = int(input("Enter end year (2024-2014): "))
                 download_boj_pdfs(years=range(start_year, end_year + 1))
     else:
         print("\nNo existing PDFs found.")
