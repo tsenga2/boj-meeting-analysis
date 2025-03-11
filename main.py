@@ -64,71 +64,139 @@ except ImportError:
 # Part 1: BOJ Meeting Dates and Document Collection
 #############################################################
 
-def get_boj_meeting_dates():
+def get_boj_meeting_dates(start_year=1998, end_year=2024, output_dir="."):
     """
     Scrape BOJ Monetary Policy Meeting dates from yearly minutes pages
+    
+    Parameters:
+    -----------
+    start_year : int
+        First year to fetch meeting dates
+    end_year : int
+        Last year to fetch meeting dates
+    output_dir : str
+        Directory to save output CSV file
+        
+    Returns:
+    --------
+    list
+        List of datetime objects representing meeting dates
     """
-    print("Fetching BOJ meeting dates...")
-
+    print(f"Fetching BOJ meeting dates from {start_year} to {end_year}...")
     all_dates = []
     base_url = "https://www.boj.or.jp"
-    years = range(2024, 2025)  # Adjust end year as needed
-
-    for year in years:
+    
+    for year in range(start_year, end_year + 1):
+        print(f"Fetching dates for {year}...")
         url = f"{base_url}/en/mopo/mpmsche_minu/minu_{year}/index.htm"
-        print(f"Fetching dates for {year}...", end=" ")
-
+        
         try:
             response = requests.get(url)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'lxml')
-
-            # Find the table with meeting dates
-            tables = soup.find_all('table')
-            year_dates = []
             
-            for table in tables:
-                # Look for date cells in each table
-                date_cells = table.find_all('td')
-                for cell in date_cells:
-                    text = cell.get_text().strip()
-                    # Look for dates in format "January 21, 22, 2020" or similar
-                    if any(month in text for month in ['January', 'February', 'March', 'April', 'May', 'June',
-                                                     'July', 'August', 'September', 'October', 'November', 'December']):
-                        try:
-                            # Parse the date from the text
-                            # Take the last date if multiple days are mentioned
-                            date_parts = text.replace(',', '').split()
-                            if len(date_parts) >= 3:
-                                # Get the last day mentioned and the year
-                                day = date_parts[-2]
-                                year = date_parts[-1]
-                                month = date_parts[0]
-                                date_str = f"{month} {day} {year}"
-                                meeting_date = pd.to_datetime(date_str)
-                                year_dates.append(meeting_date)
-                        except Exception as e:
-                            print(f"Error parsing date '{text}': {e}")
-                            continue
+            # Find text containing meeting dates
+            meeting_texts = []
+            
+            # Look for meeting date patterns in the page
+            for element in soup.find_all(['td', 'li', 'p']):
+                text = element.get_text().strip()
+                if text.startswith("Meeting on ") or text.startswith("Meetingon "):
+                    meeting_texts.append(text)
+            
+            year_dates = []
+            for text in meeting_texts:
+                try:
+                    # Clean up the text
+                    # Strip "Meeting on " prefix and remove PDF info
+                    clean_text = text.replace("Meeting on ", "").replace("Meetingon ", "")
+                    clean_text = re.sub(r'\[PDF.*?\]', '', clean_text).strip()
+                    
+                    # Handle dates with "and" (e.g., "January 21 and 22, 2020")
+                    if " and " in clean_text:
+                        parts = clean_text.split(" and ")
+                        # Get the last day mentioned (after "and")
+                        second_part = parts[1]
+                        
+                        # If the second part only contains day and potentially year
+                        if len(second_part.split()) <= 2:
+                            # Use the month from the first part
+                            month = parts[0].split()[0]
+                            day = second_part.split()[0].replace(",", "")
+                            
+                            # Check if year is present in second part
+                            if len(second_part.split()) == 2:
+                                year_str = second_part.split()[1]
+                            else:
+                                # If not, assume it's at the end of the string
+                                year_str = clean_text.split(",")[-1].strip()
+                                if not year_str.isdigit():
+                                    year_str = str(year)
+                        else:
+                            # Full date after "and"
+                            month = second_part.split()[0]
+                            day = second_part.split()[1].replace(",", "")
+                            
+                            if len(second_part.split()) > 2:
+                                year_str = second_part.split()[-1]
+                            else:
+                                year_str = str(year)
+                    else:
+                        # Regular date format
+                        parts = clean_text.split()
+                        month = parts[0]
+                        day = parts[1].replace(",", "")
+                        
+                        if len(parts) > 2:
+                            year_str = parts[-1]
+                        else:
+                            year_str = str(year)
+                    
+                    # Ensure year is a 4-digit number
+                    if len(year_str) < 4 and year_str.isdigit():
+                        year_str = f"20{year_str}" if int(year_str) < 50 else f"19{year_str}"
+                    
+                    # Construct the date string
+                    date_str = f"{month} {day} {year_str}"
+                    meeting_date = pd.to_datetime(date_str)
+                    
+                    # Verify the year is correct (in case it wasn't in the text)
+                    if meeting_date.year != year and year_str == str(year):
+                        # Try the next year (for December meetings referring to January dates)
+                        date_str = f"{month} {day} {year+1}"
+                        meeting_date = pd.to_datetime(date_str)
+                        
+                        # If still not matching, revert to the original year from the URL
+                        if meeting_date.year != year:
+                            date_str = f"{month} {day} {year}"
+                            meeting_date = pd.to_datetime(date_str)
+                    
+                    year_dates.append(meeting_date)
+                    
+                except Exception as e:
+                    print(f"Error parsing date '{text}': {e}")
+                    # Add more detailed debugging if needed
+                    continue
             
             if year_dates:
-                print(f"Found {len(year_dates)} meetings")
+                print(f"Found {len(year_dates)} meetings in {year}")
                 all_dates.extend(year_dates)
             else:
-                print("No meetings found")
-
+                print(f"No meetings found for {year}")
+                
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error fetching {year}: {e}")
             continue
-
+    
     # Sort dates and remove duplicates
     all_dates = sorted(list(set(all_dates)))
+    
+    # Create DataFrame and save to CSV
     df_dates = pd.DataFrame({'meeting_date': all_dates})
-
-    # Save dates to CSV for reference
-    df_dates.to_csv(os.path.join(OUTPUT_DIR, 'boj_meeting_dates.csv'), index=False)
-    print(f"Found {len(all_dates)} meetings total. Dates saved to '{os.path.join(OUTPUT_DIR, 'boj_meeting_dates.csv')}'")
-
+    output_path = os.path.join(output_dir, 'boj_meeting_dates.csv')
+    df_dates.to_csv(output_path, index=False)
+    
+    print(f"Found {len(all_dates)} BOJ meeting dates. Saved to '{output_path}'")
     return all_dates
 
 def download_boj_pdfs(years=None):
