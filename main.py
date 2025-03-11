@@ -295,7 +295,7 @@ def process_pdf_with_ocr(pdf_path, max_pages=5):
         print(f"Error processing PDF {pdf_path}: {str(e)}")
         return ""
 
-def analyze_meeting_texts(pdf_dir=PDF_DIR, max_pages=5):
+def analyze_meeting_texts(pdf_dir=PDF_DIR, max_pages=1):
     """
     Process BOJ meeting PDFs and calculate text similarities
     """
