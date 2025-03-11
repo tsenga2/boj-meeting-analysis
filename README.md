@@ -184,8 +184,3 @@ If you encounter any issues or have questions, please open an issue in the GitHu
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Bank of Japan for providing the meeting minutes
-- Yahoo Finance and FRED for financial data
