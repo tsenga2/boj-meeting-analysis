@@ -222,8 +222,17 @@ def download_boj_pdfs(years=None):
             
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Modified regex to match both gjrk and girk patterns
-            pdf_links = soup.find_all('a', href=re.compile(r'(?:/mopo/mpmsche_minu/record_\d{4}/|)g(?:jrk|irk)\d{6}a\.pdf$')) 
+            # Debug: Print all links on the page
+            if debug:
+                print(f"--- All links on page for year {year} ---")
+                for link in soup.find_all('a'):
+                    href = link.get('href', '')
+                    text = link.get_text()
+                    print(f"Text: {text} | Href: {href}")
+            
+            # Use the improved regex pattern
+            pdf_links = soup.find_all('a', href=re.compile(r'(?:/mopo/mpmsche_minu/record_\d{4}/|)g(?:jrk|irk)\d{6}a\.pdf$'))
+                        
             
             if not pdf_links:
                 print(f"No PDFs found for year {year}")
