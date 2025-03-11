@@ -159,28 +159,6 @@ You can customize the analysis by modifying parameters in the main script:
 - `YEARS`: Years of BOJ meetings to analyze (default=1998-2014)
 - Market metrics: You can modify or add additional market indicators
 
-## Troubleshooting
-
-### Common Issues
-
-1. **OCR Issues**: If you encounter poor text extraction quality:
-   - Ensure Japanese language data is installed for Tesseract
-   - Try increasing DPI in the `convert_from_path` function
-
-2. **Market Data Issues**: If market data fails to download:
-   - Check internet connectivity
-   - FRED API may have rate limits or require an API key
-   - Try alternative sources in the `fetch_market_data` function
-
-3. **Memory Errors**: For large datasets:
-   - Process fewer years at a time
-   - Reduce `MAX_PAGES` parameter
-   - Use a machine with more memory
-
-### Getting Help
-
-If you encounter any issues or have questions, please open an issue in the GitHub repository.
-
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
