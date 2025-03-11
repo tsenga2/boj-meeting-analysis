@@ -199,7 +199,7 @@ def get_boj_meeting_dates(start_year=1998, end_year=2014, output_dir="."):
     print(f"Found {len(all_dates)} BOJ meeting dates. Saved to '{output_path}'")
     return all_dates
 
-def download_boj_pdfs(years=None, debug=True):
+def download_boj_pdfs(years=None, debug=False):
     """
     Download PDFs of BOJ meeting minutes for specified years
     """
