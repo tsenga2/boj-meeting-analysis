@@ -743,7 +743,7 @@ def main():
     # Step 3: Analyze meeting texts and calculate similarities if Japanese text processing is available
     print("\nSTEP 3: Analyzing meeting texts")
     if JAPANESE_TEXT_AVAILABLE:
-        text_df = analyze_meeting_texts(max_pages=5)  # Adjust max_pages as needed
+        text_df = analyze_meeting_texts(max_pages=1)  # Adjust max_pages as needed
     else:
         print("Skipping text analysis (Japanese text processing modules not available)")
         
