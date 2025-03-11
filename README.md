@@ -44,7 +44,7 @@ The analysis combines text mining of BOJ meeting minutes with financial market d
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/boj-meeting-analysis.git
+   git clone https://github.com/tsenga2/boj-meeting-analysis.git
    cd boj-meeting-analysis
    ```
 
@@ -78,31 +78,39 @@ The analysis combines text mining of BOJ meeting minutes with financial market d
 
 ### Google Colab Setup
 
-1. Upload the scripts to your Google Drive or clone the repo directly:
+1. Create a new Colab notebook
 
+2. Clone the repository in Colab:
    ```python
-   !git clone https://github.com/yourusername/boj-meeting-analysis.git
+   !git clone https://github.com/tsenga2/boj-meeting-analysis.git
+   %cd boj-meeting-analysis
    ```
 
-2. Install dependencies in Colab:
-
+3. Install dependencies:
    ```python
+   # Install system dependencies
    !apt-get update
    !apt-get install -y tesseract-ocr tesseract-ocr-jpn poppler-utils mecab libmecab-dev mecab-ipadic-utf8
-   !pip install pdf2image pytesseract mecab-python3 pdfminer.six yfinance pandas-datareader scikit-learn
+   
+   # Install Python packages directly (recommended for Colab)
+   !pip install pdf2image pytesseract mecab-python3 yfinance pandas-datareader scikit-learn numpy pandas matplotlib seaborn requests beautifulsoup4 lxml tqdm
    ```
 
-3. Mount your Google Drive to save results:
+   > **Note:** For Google Colab, direct package installation is recommended over using `requirements.txt` due to Colab's pre-installed packages and environment consistency. The `requirements.txt` file is primarily used for local development environments.
 
+4. Mount Google Drive to save results:
    ```python
    from google.colab import drive
    drive.mount('/content/drive')
    ```
 
-4. Update the base directory paths in the script to use Google Drive:
-
+5. Run the main script:
    ```python
-   BASE_DIR = '/content/drive/MyDrive/BOJ_Analysis'
+   # Modify BASE_DIR to save results to Google Drive
+   !sed -i "s|BASE_DIR = './BOJ_Analysis'|BASE_DIR = '/content/drive/MyDrive/BOJ_Analysis'|g" main.py
+   
+   # Run the analysis
+   !python main.py
    ```
 
 ## Usage
@@ -127,16 +135,11 @@ The analysis combines text mining of BOJ meeting minutes with financial market d
 
 ### Running on Google Colab
 
-1. Upload the notebook version of the script to Google Colab or open it from GitHub.
+1. Create a new Colab notebook and follow the Google Colab setup instructions above.
 
-2. Execute the notebook cells sequentially.
+2. Execute each cell in sequence.
 
-3. Alternatively, you can run the Python script directly in Colab:
-
-   ```python
-   %cd /content/boj-meeting-analysis
-   !python main.py
-   ```
+3. When the analysis completes, results will be saved to your Google Drive in the specified directory.
 
 ## Output Files
 
@@ -159,6 +162,62 @@ You can customize the analysis by modifying parameters in the main script:
 - `YEARS`: Years of BOJ meetings to analyze (default=1998-2014)
 - Market metrics: You can modify or add additional market indicators
 
-## License
+## Troubleshooting
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+### Common Issues
+
+1. **OCR Issues**: If you encounter poor text extraction quality:
+   - Ensure Japanese language data is installed for Tesseract
+   - Try increasing DPI in the `convert_from_path` function
+
+2. **Market Data Issues**: If market data fails to download:
+   - Check internet connectivity
+   - FRED API may have rate limits or require an API key
+   - Try alternative sources in the `fetch_market_data` function
+
+3. **Memory Errors**: For large datasets:
+   - Process fewer years at a time
+   - Reduce `MAX_PAGES` parameter
+   - Use a machine with more memory
+
+### Getting Help
+
+If you encounter any issues or have questions, please open an issue in the GitHub repository.
+
+## When to Use requirements.txt
+
+The `requirements.txt` file serves different purposes depending on your development environment:
+
+### Use requirements.txt for:
+
+1. **Local Development Environments**
+   - Setting up consistent environments across all team members
+   - Project setup in IDEs like PyCharm or VS Code
+   - Creating reproducible virtual environments
+
+2. **Production Deployments**
+   - Deploying to production servers
+   - Containerized applications (Docker)
+   - Cloud deployments (AWS, Azure, GCP)
+
+3. **Continuous Integration/Deployment**
+   - CI/CD pipelines (GitHub Actions, Jenkins, etc.)
+   - Ensuring consistent testing environments
+
+4. **Version Control of Dependencies**
+   - Locking specific dependency versions for reproducibility
+   - Tracking dependency changes over time in version control
+
+### When NOT to use requirements.txt:
+
+1. **Notebook Environments** like Google Colab or Kaggle
+   - These have many pre-installed packages
+   - Direct pip installation is more reliable and visible
+   - Package conflicts are more easily managed with direct installation
+
+2. **Teaching or Demonstrations**
+   - When package installation is part of the learning process
+
+3. **Quick Prototypes**
+   - For rapid experimentation where environment consistency isn't critical
+
