@@ -202,19 +202,9 @@ def get_boj_meeting_dates(start_year=1998, end_year=2014, output_dir="."):
 def download_boj_pdfs(years=None):
     """
     Download PDFs of BOJ meeting minutes for specified years
-    
-    Parameters:
-    -----------
-    years : list or range
-        Years to download PDFs for (defaults to 1998-2014)
-    
-    Returns:
-    --------
-    int
-        Number of new PDFs downloaded
     """
     if not years:
-        years = range(1998, 2015)  # Default range covers years with consistent structure
+        years = range(1998, 2015)  # Default range
     
     session = requests.Session()
     base_url = "https://www.boj.or.jp"
@@ -232,21 +222,8 @@ def download_boj_pdfs(years=None):
             
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Find all PDF links based on text content
-            pdf_links = []
-            
-            # Method 1: Find links that contain "[PDF" in their text (most reliable)
-            for link in soup.find_all('a'):
-                if '[PDF' in link.get_text():
-                    pdf_links.append(link)
-            
-            # Method 2: If no links found above, use more traditional methods
-            if not pdf_links:
-                # Look for links with PDF in text or href
-                for link in soup.find_all('a'):
-                    href = link.get('href', '')
-                    if href.endswith('.pdf'):
-                        pdf_links.append(link)
+            # Modified regex to match both gjrk and girk patterns
+            pdf_links = soup.find_all('a', href=re.compile(r'/mopo/mpmsche_minu/record_\d{4}/g[ji]rk\d{6}a\.pdf$'))
             
             if not pdf_links:
                 print(f"No PDFs found for year {year}")
@@ -256,63 +233,8 @@ def download_boj_pdfs(years=None):
             year_downloaded = 0
             
             for link in tqdm(pdf_links, desc=f"Year {year}"):
-                href = link.get('href', '')
-                
-                # For links with [PDF] text but no href, try to find the href
-                if not href and '[PDF' in link.get_text():
-                    parent = link.parent
-                    if parent and parent.name == 'td':
-                        # Look for date and content information in sibling cells
-                        row = parent.parent
-                        if row and row.name == 'tr':
-                            content_cells = row.find_all('td')
-                            if len(content_cells) >= 2:
-                                meeting_info = content_cells[1].get_text().strip()
-                                # Create a filename based on meeting info
-                                pdf_name = f"{year}_{meeting_info.replace('：', '_').replace('、', '_').replace(' ', '_')}.pdf"
-                    continue  # Skip if we can't resolve the href
-                
-                # Skip incomplete hrefs
-                if not href:
-                    continue
-                
-                # Handle relative URLs
-                if href.startswith('http'):
-                    pdf_url = href
-                elif href.startswith('/'):
-                    pdf_url = f"{base_url}{href}"
-                else:
-                    # Relative to current directory
-                    pdf_url = f"{base_url}/mopo/mpmsche_minu/record_{year}/{href}"
-                
-                # Extract filename from URL or create one
-                if href.endswith('.pdf'):
-                    pdf_name = os.path.basename(href)
-                else:
-                    # Extract meeting date/info from link or parent elements
-                    meeting_info = ""
-                    parent = link.parent
-                    if parent and parent.name == 'td':
-                        row = parent.parent
-                        if row and row.name == 'tr':
-                            content_cells = row.find_all('td')
-                            if len(content_cells) >= 2:
-                                meeting_info = content_cells[1].get_text().strip()
-                    
-                    if meeting_info:
-                        # Create a filename based on meeting info and link text
-                        link_text = link.get_text().strip().replace('[', '').replace(']', '')
-                        pdf_name = f"{year}_{meeting_info}_{link_text}.pdf"
-                    else:
-                        # Use URL as last resort
-                        pdf_name = f"{year}_{os.path.basename(href)}"
-                        if not pdf_name.endswith('.pdf'):
-                            pdf_name += '.pdf'
-                
-                # Clean filename of invalid characters
-                pdf_name = re.sub(r'[\\/*?:"<>|]', '_', pdf_name)
-                
-                # Add year prefix for organization
+                pdf_url = f"{base_url}{link['href']}"
+                pdf_name = os.path.basename(link['href'])
                 filename = os.path.join(PDF_DIR, f"{year}_{pdf_name}")
                 
                 if os.path.exists(filename):
