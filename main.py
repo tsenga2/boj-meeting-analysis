@@ -199,7 +199,7 @@ def get_boj_meeting_dates(start_year=1998, end_year=2014, output_dir="."):
     print(f"Found {len(all_dates)} BOJ meeting dates. Saved to '{output_path}'")
     return all_dates
 
-def download_boj_pdfs(years=None, debug=False):
+def download_boj_pdfs(years=None):
     """
     Download PDFs of BOJ meeting minutes for specified years
     """
@@ -223,12 +223,11 @@ def download_boj_pdfs(years=None, debug=False):
             soup = BeautifulSoup(response.content, 'html.parser')
             
             # Debug: Print all links on the page
-            if debug:
-                print(f"--- All links on page for year {year} ---")
-                for link in soup.find_all('a'):
-                    href = link.get('href', '')
-                    text = link.get_text()
-                    print(f"Text: {text} | Href: {href}")
+            print(f"--- All links on page for year {year} ---")
+             for link in soup.find_all('a'):
+                href = link.get('href', '')
+                text = link.get_text()
+                print(f"Text: {text} | Href: {href}")
             
             # Use the improved regex pattern
             pdf_links = soup.find_all('a', href=re.compile(r'(?:/mopo/mpmsche_minu/record_\d{4}/|)g(?:jrk|irk)\d{6}a\.pdf$'))
