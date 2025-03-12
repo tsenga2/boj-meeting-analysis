@@ -331,12 +331,11 @@ def analyze_meeting_texts(pdf_dir=PDF_DIR, max_pages=5):
         pdf_path = os.path.join(pdf_dir, filename)
 
         # Extract date from filename
-        date_match = re.search(r'gjrk(\d{6})a', filename)
+        date_match = re.search(r'(gj|gi)rk(\d{6})a', filename)
         if not date_match:
             print(f"No date match found in filename: {filename}")
             continue
-
-        date_str = date_match.group(1)
+        date_str = date_match.group(2)
         try:
             date = datetime.strptime(date_str, "%y%m%d").date()
 
