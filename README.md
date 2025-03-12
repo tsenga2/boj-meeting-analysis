@@ -15,46 +15,12 @@ The analysis combines text mining of BOJ meeting minutes with financial market d
 
 ```
 ├── main.py                           # Main analysis script
+├── main.ipynb                        # Jupyter notebook version of the analysis
 ├── boj_past_meeting_similarity_ocr.py  # Text similarity analysis 
 ├── boj_mpm_marketstats.py            # Market statistics
 ├── requirements.txt                  # Python dependencies
 └── README.md                         # This file
 ```
-
-## Data Sources
-
-- BOJ Meeting Minutes: Downloaded from the Bank of Japan website
-- Financial Market Data:
-  - Nikkei 225 Index (^N225) from Yahoo Finance
-  - USD/JPY exchange rate (DEXJPUS) from FRED
-  - Japan Government Bond yields (IRLTLT01JPM156N) from FRED
-
-## Analysis Pipeline
-
-1. **Meeting Date Collection**
-   - Scrape and parse BOJ monetary policy meeting dates from the BOJ website
-
-2. **Meeting PDF Documents**
-   - Download PDF files of BOJ meeting minutes (from years 1998-2014)
-   - **This step is critical** - without the PDFs, the text analysis cannot proceed
-   - Note: The website structure for BOJ documents changes after 2014
-
-3. **Text Processing and Similarity Analysis**
-   - Convert PDFs to images for OCR processing (limited to 5 pages per document by default)
-   - Extract text using Tesseract OCR with Japanese language support
-   - Process text with MeCab for Japanese tokenization
-   - Extract key economic term mentions (inflation, deflation, interest rates, etc.)
-   - Calculate text similarity between consecutive meetings using TF-IDF and cosine similarity
-
-4. **Market Data Analysis**
-   - Fetch financial market data (Nikkei 225, USD/JPY, JGB yields)
-   - Calculate market statistics between consecutive BOJ meetings
-   - Measure returns, volatility, and trend metrics
-
-5. **Combined Analysis**
-   - Merge text similarity data with market statistics
-   - Calculate correlations between text similarity and market metrics
-   - Group meetings by similarity level and analyze market behavior patterns
 
 ## Setup and Usage
 
@@ -93,10 +59,15 @@ The project can be run either locally or on Google Colab.
    ```bash
    python main.py
    ```
+   
+   Or run the Jupyter notebook:
+   ```bash
+   jupyter notebook main.ipynb
+   ```
 
 ### Google Colab Setup
 
-1. Create a new Colab notebook
+1. Create a new Colab notebook or open the existing `main.ipynb` directly in Google Colab
 
 2. Add the following code blocks and run them sequentially:
 
@@ -140,7 +111,7 @@ The project can be run either locally or on Google Colab.
    meeting_dates = get_boj_meeting_dates()
    
    print("Step 2: Download BOJ meeting PDFs")
-   download_boj_pdfs(years=range(1998, 2014))  # For PDF downloads the website structure changes after 2014
+   download_boj_pdfs(years=range(1998, 2015))  # For PDF downloads the website structure changes after 2014
    
    print("Step 3: Analyze meeting texts")
    text_df = analyze_meeting_texts(pdf_dir=PDF_DIR, max_pages=5)  # Limit to 5 pages per document for faster processing
@@ -160,26 +131,39 @@ The project can be run either locally or on Google Colab.
    print("Analysis complete!")
    ```
 
-## Requirements
+## Analysis Pipeline
 
-### Python Libraries
-- Core: `pandas`, `numpy`, `matplotlib`, `seaborn`, `scikit-learn`
-- Web scraping: `requests`, `beautifulsoup4`
-- Financial data: `yfinance`, `pandas-datareader`
-- PDF processing: `pdf2image`, `pytesseract`
-- Japanese text processing: `MeCab`
+1. **Meeting Date Collection**
+   - Scrape and parse BOJ monetary policy meeting dates from the BOJ website
 
-### External Dependencies
-- Tesseract OCR with Japanese language support
-- MeCab Japanese morphological analyzer
-- Poppler (for PDF to image conversion)
+2. **Meeting PDF Documents**
+   - Download PDF files of BOJ meeting minutes (from years 1998-2014)
+   - **This step is critical** - without the PDFs, the text analysis cannot proceed
+   - Note: The website structure for BOJ documents changes after 2014
+
+3. **Text Processing and Similarity Analysis**
+   - Convert PDFs to images for OCR processing (limited to 5 pages per document by default)
+   - Extract text using Tesseract OCR with Japanese language support
+   - Process text with MeCab for Japanese tokenization
+   - Extract key economic term mentions (inflation, deflation, interest rates, etc.)
+   - Calculate text similarity between consecutive meetings using TF-IDF and cosine similarity
+
+4. **Market Data Analysis**
+   - Fetch financial market data (Nikkei 225, USD/JPY, JGB yields)
+   - Calculate market statistics between consecutive BOJ meetings
+   - Measure returns, volatility, and trend metrics
+
+5. **Combined Analysis**
+   - Merge text similarity data with market statistics
+   - Calculate correlations between text similarity and market metrics
+   - Group meetings by similarity level and analyze market behavior patterns
 
 ## Output
 
 The analysis generates the following in the `BOJ_Analysis/output` directory:
 
 1. `boj_meeting_dates.csv` - List of all BOJ meeting dates
-2. `boj_text_analysis.csv` - Text similarity analysis results including similarity metrics
+2. `boj_text_analysis.csv` - Text similarity analysis results
 3. `market_data.csv` - Raw market data
 4. `boj_market_stats.csv` - Inter-meeting market statistics
 5. `boj_combined_analysis.csv` - Combined text and market data
