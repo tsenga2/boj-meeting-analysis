@@ -64,7 +64,7 @@ except ImportError:
 # Part 1: BOJ Meeting Dates and Document Collection
 #############################################################
 
-def get_boj_meeting_dates(start_year=1998, end_year=2014, output_dir="."):
+def get_boj_meeting_dates(start_year=1998, end_year=2025, output_dir="."):
     """
     Scrape BOJ Monetary Policy Meeting dates from yearly minutes pages
     
