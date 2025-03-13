@@ -282,9 +282,6 @@ def download_boj_press_conferences(start_year, end_year):
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
 
-        # Create a directory to store the PDFs
-        os.makedirs("boj_pdfs", exist_ok=True)
-
         pdfs_downloaded = 0
 
         # Find all links that match the pattern for press conference PDFs
@@ -305,7 +302,7 @@ def download_boj_press_conferences(start_year, end_year):
 
                 # Only download PDFs within the specified year range
                 if start_year <= year <= end_year:
-                    filename = os.path.join("boj_pdfs", f"press_conference_{os.path.basename(pdf_url)}")
+                    filename = os.path.join(PDF_DIR, f"press_conference_{os.path.basename(pdf_url)}")
                     if download_pdf(pdf_url, filename):
                         pdfs_downloaded += 1
 
@@ -318,7 +315,7 @@ def download_boj_press_conferences(start_year, end_year):
 
                 # Only download PDFs within the specified year range
                 if start_year <= year <= end_year:
-                    filename = os.path.join("boj_pdfs", f"minutes_{os.path.basename(pdf_url)}")
+                    filename = os.path.join(PDF_DIR, f"minutes_{os.path.basename(pdf_url)}")
                     if download_pdf(pdf_url, filename):
                         pdfs_downloaded += 1
 
