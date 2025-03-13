@@ -215,7 +215,7 @@ def download_boj_pdfs(years=None):
     for year in years:
         print(f"Checking year {year}...")
         #url = f"{base_url}/mopo/mpmsche_minu/record_{year}/index.htm"
-        url = f"{base_url}/mopo/mpmsche_minu/minu_{year}
+        url = f"{base_url}/mopo/mpmsche_minu/minu_{year}"
         
         try:
             response = session.get(url, timeout=30)
