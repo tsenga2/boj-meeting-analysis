@@ -269,6 +269,83 @@ def download_boj_pdfs(years=None):
     print(f"Download complete! Total new PDFs downloaded: {total_downloaded}")
     return total_downloaded
 
+def download_boj_press_conferences(start_year, end_year):
+    """
+    Download BOJ press conference PDFs for specified years.
+    """
+    base_url = "https://www.boj.or.jp"
+    url = f"{base_url}/mopo/mpmsche_minu/past.htm"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Create a directory to store the PDFs
+        os.makedirs("boj_pdfs", exist_ok=True)
+
+        pdfs_downloaded = 0
+
+        # Find all links that match the pattern for press conference PDFs
+        # Press Conference
+        pdf_links = soup.find_all('a', href=re.compile(r'/about/press/kaiken_\d{4}/kk\d+[ab]\.pdf$'))
+        # Minutes
+        pdf_links_g = soup.find_all('a', href=re.compile(r'/mopo/mpmsche_minu/minu_\d{4}/g\d+\.pdf$'))
+
+        print(f"Found {len(pdf_links)} potential PDF links for press conferences")
+        print(f"Found {len(pdf_links_g)} potential PDF links for minutes")
+
+        for link in pdf_links:
+            pdf_url = f"{base_url}{link['href']}"
+            year_match = re.search(r'kaiken_(\d{4})', pdf_url)
+
+            if year_match:
+                year = int(year_match.group(1))
+
+                # Only download PDFs within the specified year range
+                if start_year <= year <= end_year:
+                    filename = os.path.join("boj_pdfs", f"press_conference_{os.path.basename(pdf_url)}")
+                    if download_pdf(pdf_url, filename):
+                        pdfs_downloaded += 1
+
+        for link in pdf_links_g:
+            pdf_url = f"{base_url}{link['href']}"
+            year_match = re.search(r'minu_(\d{4})', pdf_url)
+
+            if year_match:
+                year = int(year_match.group(1))
+
+                # Only download PDFs within the specified year range
+                if start_year <= year <= end_year:
+                    filename = os.path.join("boj_pdfs", f"minutes_{os.path.basename(pdf_url)}")
+                    if download_pdf(pdf_url, filename):
+                        pdfs_downloaded += 1
+
+        print(f"\nTotal PDFs successfully downloaded: {pdfs_downloaded}")
+
+    except requests.RequestException as e:
+        print(f"Error fetching the webpage: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+def download_pdf(pdf_url, filename):
+    """
+    Helper function to download a PDF from a URL.
+    """
+    try:
+        response = requests.get(pdf_url, timeout=30)
+        response.raise_for_status()
+
+        with open(filename, 'wb') as f:
+            f.write(response.content)
+        print(f"Downloaded: {filename}")
+        return True
+
+    except Exception as e:
+        print(f"Error downloading {pdf_url}: {e}")
+        return False
+
+
 #############################################################
 # Part 2: Text Processing and Similarity Analysis
 #############################################################
