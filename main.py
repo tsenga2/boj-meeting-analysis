@@ -214,7 +214,8 @@ def download_boj_pdfs(years=None):
     
     for year in years:
         print(f"Checking year {year}...")
-        url = f"{base_url}/mopo/mpmsche_minu/record_{year}/index.htm"
+        #url = f"{base_url}/mopo/mpmsche_minu/record_{year}/index.htm"
+        url = f"{base_url}/mopo/mpmsche_minu/minu_{year}
         
         try:
             response = session.get(url, timeout=30)
@@ -230,8 +231,8 @@ def download_boj_pdfs(years=None):
             #    print(f"Text: {text} | Href: {href}")
             
             # Use the improved regex pattern
-            pdf_links = soup.find_all('a', href=re.compile(r'(?:/mopo/mpmsche_minu/record_\d{4}/|)g(?:jrk|irk)\d{6}a\.pdf$'))
-                        
+            #pdf_links = soup.find_all('a', href=re.compile(r'(?:/mopo/mpmsche_minu/record_\d{4}/|)g(?:jrk|irk)\d{6}a\.pdf$'))
+            pdf_links = soup.find_all('a', href=re.compile(r'/mopo/mpmsche_minu/minu_\d{4}/g\d+\.pdf$'))
             
             if not pdf_links:
                 print(f"No PDFs found for year {year}")
