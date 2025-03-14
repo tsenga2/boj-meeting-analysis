@@ -347,6 +347,190 @@ def download_pdf(pdf_url, filename):
 #############################################################
 # Part 2: Text Processing and Similarity Analysis
 #############################################################
+def analyze_meeting_texts_all_formats(pdf_dir=PDF_DIR, max_pages=5, use_ocr=True):
+    """
+    Process BOJ meeting PDFs and calculate text similarities, handling different file naming formats
+    
+    Parameters:
+    -----------
+    pdf_dir : str
+        Directory containing the PDF files
+    max_pages : int
+        Maximum number of pages to process per PDF
+    use_ocr : bool
+        Whether to use OCR for text extraction (set to False if PDFs are text-based)
+        
+    Returns:
+    --------
+    pandas.DataFrame
+        DataFrame containing text analysis results
+    """
+    if use_ocr and not JAPANESE_TEXT_AVAILABLE:
+        print("Japanese text processing modules not available. Skipping text analysis.")
+        return pd.DataFrame()
+        
+    data = []
+    
+    # Get list of PDFs
+    pdf_files = sorted([f for f in os.listdir(pdf_dir) if f.endswith('.pdf')])
+    if not pdf_files:
+        print(f"No PDF files found in {pdf_dir}")
+        print("Please run download_boj_pdfs() first or check the directory path.")
+        return pd.DataFrame()
+        
+    print(f"Found {len(pdf_files)} PDF files")
+    print(f"Processing {max_pages} pages per document")
+    
+    # Process each PDF with progress bar
+    for i, filename in enumerate(pdf_files):
+        print(f"\nProcessing file {i+1}/{len(pdf_files)}: {filename}")
+        pdf_path = os.path.join(pdf_dir, filename)
+
+        # Extract date from filename using multiple patterns
+        # Pattern 1: Original format like '2009_g091218.pdf' or with (gj|gi)rk(\d{6})a
+        # Pattern 2: New format like 'minutes_g100126.pdf'
+        date_match = None
+        
+        # Try the original pattern first
+        original_pattern = re.search(r'(gj|gi)rk(\d{6})a', filename)
+        if original_pattern:
+            date_str = original_pattern.group(2)
+            date_format = "%y%m%d"
+            date_match = True
+        
+        # Try the format like '2009_g091218.pdf'
+        elif re.search(r'\d{4}_g\d{6}', filename):
+            date_str = re.search(r'_g(\d{6})', filename).group(1)
+            date_format = "%y%m%d"
+            date_match = True
+            
+        # Try the new format like 'minutes_g100126.pdf'
+        elif re.search(r'minutes_g\d{6}', filename):
+            date_str = re.search(r'_g(\d{6})', filename).group(1)
+            date_format = "%y%m%d"
+            date_match = True
+            
+        if not date_match:
+            print(f"No date match found in filename: {filename}")
+            continue
+            
+        try:
+            date = datetime.strptime(date_str, date_format).date()
+
+            # Extract text (use OCR or direct extraction based on preference)
+            if use_ocr:
+                text = process_pdf_with_ocr(pdf_path, max_pages=max_pages)
+            else:
+                # Use PyPDF2 or pdfplumber for direct text extraction (install if needed)
+                try:
+                    import PyPDF2
+                    reader = PyPDF2.PdfReader(pdf_path)
+                    pages_to_process = min(max_pages, len(reader.pages))
+                    text = ""
+                    for page_num in range(pages_to_process):
+                        text += reader.pages[page_num].extract_text() + "\n"
+                except ImportError:
+                    print("PyPDF2 not available. Falling back to OCR.")
+                    text = process_pdf_with_ocr(pdf_path, max_pages=max_pages)
+
+            if not text.strip():
+                print(f"Warning: No text extracted from {filename}")
+                continue
+
+            # Process text with MeCab if available
+            if JAPANESE_TEXT_AVAILABLE:
+                mecab = MeCab.Tagger("")
+                processed_text = []
+                node = mecab.parseToNode(text)
+                while node:
+                    features = node.feature.split(',')
+                    if features[0] in ['名詞', '動詞', '形容詞']:
+                        if features[0] == '動詞' and len(features) > 6:
+                            processed_text.append(features[6])
+                        else:
+                            processed_text.append(node.surface)
+                    node = node.next
+                processed_text = ' '.join(processed_text)
+            else:
+                # Simple tokenization for non-Japanese environment
+                processed_text = text
+                
+            # Extract metrics (keep the same as original function)
+            metrics = {
+                'inflation_mentions': len(re.findall('インフレ|物価上昇', text)),
+                'deflation_mentions': len(re.findall('デフレ|物価下落', text)),
+                'fx_mentions': len(re.findall('為替|円相場|ドル円|ユーロ円', text)),
+                'interest_rate_mentions': len(re.findall('金利|利率|利回り', text)),
+                'economy_mentions': len(re.findall('景気|経済情勢|経済状況', text))
+            }
+
+            # Get page count appropriately based on extraction method
+            if use_ocr:
+                try:
+                    page_count = min(max_pages, len(convert_from_path(pdf_path)))
+                except:
+                    page_count = max_pages
+            else:
+                try:
+                    import PyPDF2
+                    reader = PyPDF2.PdfReader(pdf_path)
+                    page_count = min(max_pages, len(reader.pages))
+                except:
+                    page_count = max_pages
+
+            data.append({
+                'date': date,
+                'filename': filename,
+                'text': processed_text,
+                'pages_processed': page_count,
+                **metrics
+            })
+
+        except Exception as e:
+            print(f"Error processing {filename}: {e}")
+            continue
+    
+    # Create DataFrame
+    if not data:
+        print("No data was collected from PDFs")
+        return pd.DataFrame()
+        
+    df = pd.DataFrame(data)
+    df = df.sort_values('date')
+    
+    # Calculate text similarity
+    if len(df) > 1:
+        vectorizer = TfidfVectorizer()
+        tfidf_matrix = vectorizer.fit_transform(df['text'])
+        similarity_matrix = cosine_similarity(tfidf_matrix)
+        df['similarity_with_previous'] = [0] + [similarity_matrix[i, i-1] for i in range(1, len(df))]
+    
+    # Visualize similarity and key terms (keep the same as original function)
+    plt.figure(figsize=(12, 10))
+    
+    plt.subplot(2, 1, 1)
+    plt.plot(df['date'], df['similarity_with_previous'], marker='o')
+    plt.title("Cosine Similarity Between Consecutive Monetary Policy Meetings")
+    plt.ylabel("Cosine Similarity")
+    plt.grid(True)
+    
+    plt.subplot(2, 1, 2)
+    plt.plot(df['date'], df['inflation_mentions'], label='Inflation', marker='o')
+    plt.plot(df['date'], df['deflation_mentions'], label='Deflation', marker='*')
+    plt.plot(df['date'], df['fx_mentions'], label='FX', marker='^')
+    plt.title("Mention Frequency of Key Economic Indicators")
+    plt.xlabel("Date")
+    plt.ylabel("Mention Frequency")
+    plt.legend()
+    plt.grid(True)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, "text_similarity_analysis_all_formats.png"))
+    
+    # Save results
+    df.to_csv(os.path.join(OUTPUT_DIR, 'boj_text_analysis_all_formats.csv'), index=False)
+    
+    return df
 
 def process_pdf_with_ocr(pdf_path, max_pages=5):
     """
