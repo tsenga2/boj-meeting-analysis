@@ -381,6 +381,22 @@ def analyze_meeting_texts_all_formats(pdf_dir=PDF_DIR, max_pages=5, use_ocr=True
     print(f"Found {len(pdf_files)} PDF files")
     print(f"Processing {max_pages} pages per document")
     
+    # Try installing necessary libraries if needed
+    if not use_ocr:
+        try:
+            import pip
+            pip.main(['install', 'PyPDF2'])
+            print("Successfully installed PyPDF2")
+        except:
+            print("Failed to install PyPDF2. Will use alternative methods.")
+            
+        try:
+            import pip
+            pip.main(['install', 'pdfminer.six'])
+            print("Successfully installed pdfminer.six")
+        except:
+            print("Failed to install pdfminer.six. Will use alternative methods.")
+    
     # Process each PDF with progress bar
     for i, filename in enumerate(pdf_files):
         print(f"\nProcessing file {i+1}/{len(pdf_files)}: {filename}")
@@ -417,40 +433,116 @@ def analyze_meeting_texts_all_formats(pdf_dir=PDF_DIR, max_pages=5, use_ocr=True
         try:
             date = datetime.strptime(date_str, date_format).date()
 
-            # Extract text (use OCR or direct extraction based on preference)
-            if use_ocr:
-                text = process_pdf_with_ocr(pdf_path, max_pages=max_pages)
-            else:
-                # Use PyPDF2 or pdfplumber for direct text extraction (install if needed)
+            # Try multiple text extraction methods
+            text = ""
+            
+            # Method 1: Try PyPDF2
+            try:
+                import PyPDF2
+                reader = PyPDF2.PdfReader(pdf_path)
+                pages_to_process = min(max_pages, len(reader.pages))
+                print(f"Using PyPDF2 to extract {pages_to_process} pages")
+                for page_num in range(pages_to_process):
+                    page_text = reader.pages[page_num].extract_text()
+                    if page_text:
+                        text += page_text + "\n"
+                if text.strip():
+                    print(f"Successfully extracted text with PyPDF2: {len(text)} characters")
+            except Exception as e:
+                print(f"PyPDF2 extraction failed: {e}")
+                
+            # Method 2: Try pdfminer if PyPDF2 failed
+            if not text.strip():
                 try:
-                    import PyPDF2
-                    reader = PyPDF2.PdfReader(pdf_path)
-                    pages_to_process = min(max_pages, len(reader.pages))
-                    text = ""
-                    for page_num in range(pages_to_process):
-                        text += reader.pages[page_num].extract_text() + "\n"
-                except ImportError:
-                    print("PyPDF2 not available. Falling back to OCR.")
+                    from pdfminer.high_level import extract_text as pdfminer_extract
+                    print("Using pdfminer.six for extraction")
+                    text = pdfminer_extract(pdf_path, page_numbers=list(range(max_pages)))
+                    if text.strip():
+                        print(f"Successfully extracted text with pdfminer: {len(text)} characters")
+                except Exception as e:
+                    print(f"pdfminer extraction failed: {e}")
+            
+            # Method 3: Enhanced OCR with preprocessing if other methods failed
+            if not text.strip() and use_ocr:
+                print(f"Using enhanced OCR with preprocessing")
+                try:
+                    from PIL import Image, ImageEnhance
+                    
+                    images = convert_from_path(pdf_path, dpi=300)  # Higher DPI for better quality
+                    pages_to_process = min(max_pages, len(images))
+                    
+                    for i, image in enumerate(images[:pages_to_process]):
+                        print(f"OCR processing page {i+1}/{pages_to_process} with enhancements")
+                        
+                        # Preprocessing to improve OCR results
+                        # Convert to grayscale
+                        image = image.convert('L')
+                        
+                        # Enhance contrast
+                        enhancer = ImageEnhance.Contrast(image)
+                        image = enhancer.enhance(2.0)
+                        
+                        # Enhance sharpness
+                        enhancer = ImageEnhance.Sharpness(image)
+                        image = enhancer.enhance(2.0)
+                        
+                        # Save debug image if needed
+                        # image.save(f"debug_page_{i}.png")
+                        
+                        # OCR with additional configuration
+                        page_text = pytesseract.image_to_string(
+                            image, 
+                            lang='jpn', 
+                            config='--psm 1 --oem 3'  # Page segmentation mode 1 (auto) and LSTM OCR engine
+                        )
+                        
+                        text += page_text + "\n"
+                    
+                    if text.strip():
+                        print(f"Successfully extracted text with enhanced OCR: {len(text)} characters")
+                    else:
+                        print("Enhanced OCR failed to extract text")
+                        
+                except Exception as e:
+                    print(f"Enhanced OCR failed: {e}")
+
+            # If still no text, try basic OCR as last resort
+            if not text.strip() and use_ocr:
+                print("Trying basic OCR as last resort")
+                try:
                     text = process_pdf_with_ocr(pdf_path, max_pages=max_pages)
+                    if text.strip():
+                        print(f"Successfully extracted text with basic OCR: {len(text)} characters")
+                except Exception as e:
+                    print(f"Basic OCR failed: {e}")
 
             if not text.strip():
-                print(f"Warning: No text extracted from {filename}")
-                continue
+                print(f"Warning: All extraction methods failed for {filename}")
+                # Optionally skip this file and continue with the next one
+                # continue
+                
+                # Or use a placeholder for analysis
+                text = f"NO_TEXT_EXTRACTED_{filename}"
 
             # Process text with MeCab if available
             if JAPANESE_TEXT_AVAILABLE:
-                mecab = MeCab.Tagger("")
-                processed_text = []
-                node = mecab.parseToNode(text)
-                while node:
-                    features = node.feature.split(',')
-                    if features[0] in ['名詞', '動詞', '形容詞']:
-                        if features[0] == '動詞' and len(features) > 6:
-                            processed_text.append(features[6])
-                        else:
-                            processed_text.append(node.surface)
-                    node = node.next
-                processed_text = ' '.join(processed_text)
+                try:
+                    mecab = MeCab.Tagger("")
+                    processed_text = []
+                    node = mecab.parseToNode(text)
+                    while node:
+                        features = node.feature.split(',')
+                        if features[0] in ['名詞', '動詞', '形容詞']:
+                            if features[0] == '動詞' and len(features) > 6:
+                                processed_text.append(features[6])
+                            else:
+                                processed_text.append(node.surface)
+                        node = node.next
+                    processed_text = ' '.join(processed_text)
+                    print(f"Successfully processed with MeCab: {len(processed_text)} characters")
+                except Exception as e:
+                    print(f"MeCab processing failed: {e}")
+                    processed_text = text
             else:
                 # Simple tokenization for non-Japanese environment
                 processed_text = text
@@ -464,17 +556,14 @@ def analyze_meeting_texts_all_formats(pdf_dir=PDF_DIR, max_pages=5, use_ocr=True
                 'economy_mentions': len(re.findall('景気|経済情勢|経済状況', text))
             }
 
-            # Get page count appropriately based on extraction method
-            if use_ocr:
+            # Get page count
+            try:
+                import PyPDF2
+                reader = PyPDF2.PdfReader(pdf_path)
+                page_count = min(max_pages, len(reader.pages))
+            except:
                 try:
                     page_count = min(max_pages, len(convert_from_path(pdf_path)))
-                except:
-                    page_count = max_pages
-            else:
-                try:
-                    import PyPDF2
-                    reader = PyPDF2.PdfReader(pdf_path)
-                    page_count = min(max_pages, len(reader.pages))
                 except:
                     page_count = max_pages
 
@@ -500,35 +589,45 @@ def analyze_meeting_texts_all_formats(pdf_dir=PDF_DIR, max_pages=5, use_ocr=True
     
     # Calculate text similarity
     if len(df) > 1:
-        vectorizer = TfidfVectorizer()
-        tfidf_matrix = vectorizer.fit_transform(df['text'])
-        similarity_matrix = cosine_similarity(tfidf_matrix)
-        df['similarity_with_previous'] = [0] + [similarity_matrix[i, i-1] for i in range(1, len(df))]
+        try:
+            vectorizer = TfidfVectorizer()
+            tfidf_matrix = vectorizer.fit_transform(df['text'])
+            similarity_matrix = cosine_similarity(tfidf_matrix)
+            df['similarity_with_previous'] = [0] + [similarity_matrix[i, i-1] for i in range(1, len(df))]
+        except Exception as e:
+            print(f"Error calculating similarity: {e}")
+            df['similarity_with_previous'] = 0
     
     # Visualize similarity and key terms (keep the same as original function)
-    plt.figure(figsize=(12, 10))
-    
-    plt.subplot(2, 1, 1)
-    plt.plot(df['date'], df['similarity_with_previous'], marker='o')
-    plt.title("Cosine Similarity Between Consecutive Monetary Policy Meetings")
-    plt.ylabel("Cosine Similarity")
-    plt.grid(True)
-    
-    plt.subplot(2, 1, 2)
-    plt.plot(df['date'], df['inflation_mentions'], label='Inflation', marker='o')
-    plt.plot(df['date'], df['deflation_mentions'], label='Deflation', marker='*')
-    plt.plot(df['date'], df['fx_mentions'], label='FX', marker='^')
-    plt.title("Mention Frequency of Key Economic Indicators")
-    plt.xlabel("Date")
-    plt.ylabel("Mention Frequency")
-    plt.legend()
-    plt.grid(True)
-    
-    plt.tight_layout()
-    plt.savefig(os.path.join(OUTPUT_DIR, "text_similarity_analysis_all_formats.png"))
+    try:
+        plt.figure(figsize=(12, 10))
+        
+        plt.subplot(2, 1, 1)
+        plt.plot(df['date'], df['similarity_with_previous'], marker='o')
+        plt.title("Cosine Similarity Between Consecutive Monetary Policy Meetings")
+        plt.ylabel("Cosine Similarity")
+        plt.grid(True)
+        
+        plt.subplot(2, 1, 2)
+        plt.plot(df['date'], df['inflation_mentions'], label='Inflation', marker='o')
+        plt.plot(df['date'], df['deflation_mentions'], label='Deflation', marker='*')
+        plt.plot(df['date'], df['fx_mentions'], label='FX', marker='^')
+        plt.title("Mention Frequency of Key Economic Indicators")
+        plt.xlabel("Date")
+        plt.ylabel("Mention Frequency")
+        plt.legend()
+        plt.grid(True)
+        
+        plt.tight_layout()
+        plt.savefig(os.path.join(OUTPUT_DIR, "text_similarity_analysis_all_formats.png"))
+    except Exception as e:
+        print(f"Error creating visualization: {e}")
     
     # Save results
-    df.to_csv(os.path.join(OUTPUT_DIR, 'boj_text_analysis_all_formats.csv'), index=False)
+    try:
+        df.to_csv(os.path.join(OUTPUT_DIR, 'boj_text_analysis_all_formats.csv'), index=False)
+    except Exception as e:
+        print(f"Error saving CSV: {e}")
     
     return df
 
