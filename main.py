@@ -691,25 +691,132 @@ def find_key_meeting_changes(df, threshold=0.5):
         print("Similarity data not available in the DataFrame")
         return pd.DataFrame()
     
-    # Find meetings with similarity below threshold
-    key_changes = df[df['similarity_with_previous'] < threshold].copy()
+    # Make a copy of the dataframe with reset index to avoid index issues
+    df_reset = df.reset_index(drop=True)
+    
+    # Find meetings with similarity below threshold (skip the first meeting which has similarity=0)
+    key_changes = df_reset[(df_reset['similarity_with_previous'] < threshold) & 
+                           (df_reset.index > 0)].copy()
     
     if key_changes.empty:
         print(f"No meetings found with similarity below {threshold}")
         return key_changes
     
     # Add previous meeting date for reference
-    key_changes['previous_meeting_date'] = key_changes['date'].shift(1)
+    key_changes['previous_meeting_date'] = pd.NaT  # Initialize with NaT
+    mention_cols = [col for col in df_reset.columns if col.endswith('_mentions')]
     
-    # Calculate keyword changes
-    mention_cols = [col for col in df.columns if col.endswith('_mentions')]
-    
-    for col in mention_cols:
-        df[f'{col}_change'] = df[col] - df[col].shift(1)
-        key_changes[f'{col}_change'] = key_changes[col] - df.loc[key_changes.index - 1, col].values
+    # Calculate changes for each row in key_changes
+    for idx, row in key_changes.iterrows():
+        # Find the previous meeting (should exist since we filtered for index > 0)
+        prev_idx = idx - 1
+        prev_row = df_reset.iloc[prev_idx]
+        
+        # Set the previous meeting date
+        key_changes.at[idx, 'previous_meeting_date'] = prev_row['date']
+        
+        # Calculate keyword changes
+        for col in mention_cols:
+            change_col = f'{col}_change'
+            if change_col not in key_changes.columns:
+                key_changes[change_col] = 0
+            key_changes.at[idx, change_col] = row[col] - prev_row[col]
     
     print(f"Found {len(key_changes)} meetings with significant content changes")
+    
+    # Sort by date
+    key_changes = key_changes.sort_values('date')
+    
+    # Add formatted output for easier reading
+    key_changes['summary'] = key_changes.apply(
+        lambda row: f"Meeting on {row['date']} (vs {row['previous_meeting_date']}): " + 
+                   ", ".join([f"{col.split('_')[0]} {'+' if row[f'{col}_change'] > 0 else ''}{row[f'{col}_change']}" 
+                             for col in mention_cols if abs(row[f'{col}_change']) > 0]),
+        axis=1
+    )
+    
     return key_changes
+
+def analyze_keyword_trends(df, window_size=3):
+    """
+    Analyze trends in keyword mentions over time.
+    
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        DataFrame with BOJ meeting analysis
+    window_size : int
+        Size of the rolling window for trend analysis
+        
+    Returns:
+    --------
+    pandas.DataFrame
+        DataFrame with trend analysis
+    """
+    if df.empty:
+        print("Empty DataFrame provided")
+        return pd.DataFrame()
+    
+    # Ensure the data is sorted by date
+    df = df.sort_values('date').copy()
+    
+    # Get keyword columns
+    keyword_cols = [col for col in df.columns if col.endswith('_mentions')]
+    
+    # Calculate moving averages
+    for col in keyword_cols:
+        df[f'{col}_ma'] = df[col].rolling(window=window_size, min_periods=1).mean()
+    
+    # Calculate trend direction (increasing, decreasing, or stable)
+    for col in keyword_cols:
+        # Calculate rate of change
+        df[f'{col}_trend'] = df[f'{col}_ma'].diff()
+        
+        # Convert to categorical trend
+        conditions = [
+            df[f'{col}_trend'] > 0.5,  # Increasing
+            df[f'{col}_trend'] < -0.5,  # Decreasing
+        ]
+        choices = ['Increasing', 'Decreasing']
+        default = 'Stable'
+        df[f'{col}_trend_dir'] = np.select(conditions, choices, default=default)
+    
+    # Create an overall summary
+    df['period'] = pd.to_datetime(df['date']).dt.to_period('Q')
+    
+    # Create quarterly summary
+    quarterly_summary = df.groupby('period')[keyword_cols].mean().reset_index()
+    quarterly_summary['period_str'] = quarterly_summary['period'].astype(str)
+    
+    # Save visualizations
+    try:
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        
+        # Set style
+        sns.set(style="whitegrid")
+        
+        # Create trend visualization
+        plt.figure(figsize=(14, 10))
+        
+        # Plot each keyword's quarterly average
+        for col in keyword_cols:
+            keyword = col.split('_')[0].capitalize()
+            plt.plot(quarterly_summary['period_str'], quarterly_summary[col], 
+                     marker='o', linestyle='-', label=keyword)
+        
+        plt.title("Quarterly Average Keyword Mentions in BOJ Minutes", fontsize=14)
+        plt.xlabel("Quarter")
+        plt.ylabel("Average Mentions")
+        plt.legend()
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.savefig(os.path.join(OUTPUT_DIR, "boj_keyword_trends.png"))
+        
+    except Exception as e:
+        print(f"Error creating trend visualization: {e}")
+    
+    return df
 
 def analyze_meeting_texts_all_formats(pdf_dir=PDF_DIR, max_pages=5, use_ocr=True):
     """
