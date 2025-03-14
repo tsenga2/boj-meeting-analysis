@@ -657,14 +657,6 @@ def extract_boj_minutes_text(pdf_dir=PDF_DIR, output_dir=OUTPUT_DIR):
         plt.savefig(os.path.join(output_dir, "boj_minutes_analysis.png"))
         print(f"Saved visualization to {os.path.join(output_dir, 'boj_minutes_analysis.png')}")
         
-        # Create heatmap of mentions
-        plt.figure(figsize=(12, 8))
-        sns.heatmap(df[mentions_cols], cmap="YlOrRd", annot=True, fmt="d")
-        plt.title("Heatmap of Keyword Mentions in BOJ Minutes", fontsize=14)
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, "boj_minutes_heatmap.png"))
-        print(f"Saved heatmap to {os.path.join(output_dir, 'boj_minutes_heatmap.png')}")
-        
     except Exception as e:
         print(f"Error creating visualizations: {e}")
     
