@@ -347,6 +347,370 @@ def download_pdf(pdf_url, filename):
 #############################################################
 # Part 2: Text Processing and Similarity Analysis
 #############################################################
+def extract_boj_minutes_text(pdf_dir=PDF_DIR, output_dir=OUTPUT_DIR):
+    """
+    Specialized function for extracting text from BOJ minutes PDFs with
+    comprehensive approach to handle encoding issues and various PDF formats.
+    
+    Parameters:
+    -----------
+    pdf_dir : str
+        Directory containing the PDF files
+    output_dir : str
+        Directory to save output files
+        
+    Returns:
+    --------
+    pandas.DataFrame
+        DataFrame containing text analysis results
+    """
+    # Try to install required packages
+    try:
+        import subprocess
+        import sys
+        
+        # Install required packages if not already available
+        required_packages = ['pdfminer.six', 'pymupdf', 'pikepdf', 'PyPDF2']
+        for package in required_packages:
+            try:
+                __import__(package.split('.')[0])
+                print(f"{package} is already installed.")
+            except ImportError:
+                print(f"Installing {package}...")
+                subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+                print(f"Successfully installed {package}")
+    except Exception as e:
+        print(f"Warning: Package installation failed: {e}")
+        print("Continuing with available packages...")
+    
+    # Get list of PDFs
+    pdf_files = sorted([f for f in os.listdir(pdf_dir) if f.endswith('.pdf')])
+    if not pdf_files:
+        print(f"No PDF files found in {pdf_dir}")
+        return pd.DataFrame()
+        
+    print(f"Found {len(pdf_files)} PDF files")
+    
+    # Initialize results list
+    data = []
+    
+    # Define Japanese keyword patterns to look for
+    japanese_keywords = {
+        'inflation': ['インフレ', '物価上昇', '物価', '上昇率', 'CPI', '消費者物価'],
+        'deflation': ['デフレ', '物価下落', '物価下押し'],
+        'fx': ['為替', '円相場', 'ドル円', 'ユーロ円', '円レート', '円安', '円高'],
+        'interest_rate': ['金利', '利率', '利回り', '政策金利', '長期金利', '短期金利'],
+        'economy': ['景気', '経済情勢', '経済状況', '景気回復', '景気拡大', '景気後退', '経済活動', 'GDP']
+    }
+    
+    # Process each PDF with progress bar
+    for i, filename in enumerate(pdf_files):
+        print(f"\nProcessing file {i+1}/{len(pdf_files)}: {filename}")
+        pdf_path = os.path.join(pdf_dir, filename)
+        
+        # Extract date from filename
+        date_match = None
+        
+        # Try multiple date formats in the filename
+        if re.search(r'(gj|gi)rk(\d{6})a', filename):
+            date_str = re.search(r'(gj|gi)rk(\d{6})a', filename).group(2)
+            date_format = "%y%m%d"
+            date_match = True
+        elif re.search(r'\d{4}_g\d{6}', filename):
+            date_str = re.search(r'_g(\d{6})', filename).group(1)
+            date_format = "%y%m%d"
+            date_match = True
+        elif re.search(r'minutes_g\d{6}', filename):
+            date_str = re.search(r'_g(\d{6})', filename).group(1)
+            date_format = "%y%m%d"
+            date_match = True
+        
+        if not date_match:
+            print(f"No date match found in filename: {filename}")
+            # Try to use file modification time as a fallback
+            try:
+                file_mtime = os.path.getmtime(pdf_path)
+                file_date = datetime.fromtimestamp(file_mtime).date()
+                print(f"Using file modification date: {file_date}")
+                date = file_date
+            except:
+                print(f"Skipping file due to date extraction failure: {filename}")
+                continue
+        else:
+            try:
+                date = datetime.strptime(date_str, date_format).date()
+            except Exception as e:
+                print(f"Date parsing error: {e}")
+                continue
+        
+        # Initialize text variable
+        text = ""
+        
+        # METHOD 1: PyMuPDF (fitz) - Usually best for Japanese text
+        try:
+            import fitz
+            print("Trying PyMuPDF extraction...")
+            
+            doc = fitz.open(pdf_path)
+            pages_processed = len(doc)
+            
+            # Get text from each page
+            all_text = []
+            for page_num in range(pages_processed):
+                page = doc[page_num]
+                page_text = page.get_text("text")
+                all_text.append(page_text)
+                
+            text = "\n".join(all_text)
+            if text.strip():
+                print(f"Successfully extracted {len(text)} characters with PyMuPDF")
+        except Exception as e:
+            print(f"PyMuPDF extraction failed: {e}")
+        
+        # METHOD 2: pdfminer.six with Japanese encoding
+        if not text.strip():
+            try:
+                from pdfminer.high_level import extract_text
+                from pdfminer.layout import LAParams
+                
+                print("Trying pdfminer.six extraction with Japanese encoding...")
+                
+                # Try with different encodings
+                for encoding in ['utf-8', 'euc-jp', 'shift_jis', 'iso2022_jp']:
+                    try:
+                        laparams = LAParams()
+                        text = extract_text(pdf_path, laparams=laparams, codec=encoding)
+                        if text.strip():
+                            print(f"Successfully extracted {len(text)} characters with pdfminer using {encoding}")
+                            break
+                    except:
+                        continue
+            except Exception as e:
+                print(f"pdfminer extraction failed: {e}")
+        
+        # METHOD 3: PyPDF2
+        if not text.strip():
+            try:
+                import PyPDF2
+                print("Trying PyPDF2 extraction...")
+                
+                reader = PyPDF2.PdfReader(pdf_path)
+                pages_processed = len(reader.pages)
+                
+                # Get text from each page
+                all_text = []
+                for page_num in range(pages_processed):
+                    try:
+                        page_text = reader.pages[page_num].extract_text()
+                        all_text.append(page_text)
+                    except:
+                        continue
+                        
+                text = "\n".join(all_text)
+                if text.strip():
+                    print(f"Successfully extracted {len(text)} characters with PyPDF2")
+            except Exception as e:
+                print(f"PyPDF2 extraction failed: {e}")
+        
+        # METHOD 4: pikepdf (can sometimes access text when others can't)
+        if not text.strip():
+            try:
+                import pikepdf
+                import io
+                from pdfminer.high_level import extract_text_to_fp
+                
+                print("Trying pikepdf extraction...")
+                
+                pdf = pikepdf.open(pdf_path)
+                output_string = io.StringIO()
+                
+                # Extract text using pdfminer through pikepdf
+                with io.BytesIO() as in_file:
+                    pdf.save(in_file)
+                    in_file.seek(0)
+                    extract_text_to_fp(in_file, output_string)
+                
+                text = output_string.getvalue()
+                if text.strip():
+                    print(f"Successfully extracted {len(text)} characters with pikepdf")
+            except Exception as e:
+                print(f"pikepdf extraction failed: {e}")
+        
+        # METHOD 5: OCR as last resort
+        if not text.strip() and JAPANESE_TEXT_AVAILABLE:
+            try:
+                print("Trying OCR extraction...")
+                text = process_pdf_with_ocr(pdf_path, max_pages=5)
+                if text.strip():
+                    print(f"Successfully extracted {len(text)} characters with OCR")
+            except Exception as e:
+                print(f"OCR extraction failed: {e}")
+        
+        # If all extraction methods failed
+        if not text.strip():
+            print(f"Warning: All extraction methods failed for {filename}")
+            continue
+        
+        # Count keyword occurrences
+        metrics = {}
+        for category, keywords in japanese_keywords.items():
+            count = 0
+            for keyword in keywords:
+                count += text.count(keyword)
+            metrics[f"{category}_mentions"] = count
+        
+        # Save the full text for examination
+        text_filename = os.path.splitext(filename)[0] + ".txt"
+        text_path = os.path.join(output_dir, text_filename)
+        try:
+            with open(text_path, 'w', encoding='utf-8') as f:
+                f.write(text)
+            print(f"Saved extracted text to {text_path}")
+        except Exception as e:
+            print(f"Error saving text file: {e}")
+        
+        # Determine page count
+        try:
+            import fitz
+            doc = fitz.open(pdf_path)
+            page_count = len(doc)
+        except:
+            try:
+                import PyPDF2
+                reader = PyPDF2.PdfReader(pdf_path)
+                page_count = len(reader.pages)
+            except:
+                page_count = 0  # Unknown
+        
+        # Add data to results
+        data.append({
+            'date': date,
+            'filename': filename,
+            'text': text,
+            'pages_processed': page_count,
+            **metrics
+        })
+    
+    # Create DataFrame
+    if not data:
+        print("No data was collected from PDFs")
+        return pd.DataFrame()
+        
+    df = pd.DataFrame(data)
+    df = df.sort_values('date')
+    
+    # Calculate text similarity if possible
+    if len(df) > 1:
+        try:
+            from sklearn.feature_extraction.text import TfidfVectorizer
+            from sklearn.metrics.pairwise import cosine_similarity
+            
+            vectorizer = TfidfVectorizer(max_features=5000)
+            tfidf_matrix = vectorizer.fit_transform(df['text'])
+            similarity_matrix = cosine_similarity(tfidf_matrix)
+            df['similarity_with_previous'] = [0] + [similarity_matrix[i, i-1] for i in range(1, len(df))]
+            print("Successfully calculated text similarities")
+        except Exception as e:
+            print(f"Error calculating similarity: {e}")
+            df['similarity_with_previous'] = 0
+    
+    # Save results to CSV
+    output_path = os.path.join(output_dir, 'boj_text_analysis_improved.csv')
+    df.to_csv(output_path, index=False)
+    print(f"Saved analysis results to {output_path}")
+    
+    # Create visualizations
+    try:
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        
+        # Set up the visualization style
+        sns.set(style="whitegrid")
+        
+        # Create mentions over time chart
+        plt.figure(figsize=(14, 10))
+        
+        # Plot 1: Similarity
+        if 'similarity_with_previous' in df.columns:
+            plt.subplot(2, 1, 1)
+            plt.plot(df['date'], df['similarity_with_previous'], marker='o', linestyle='-', color='blue')
+            plt.title("Text Similarity Between Consecutive BOJ Minutes", fontsize=14)
+            plt.ylabel("Cosine Similarity")
+            plt.grid(True)
+            plt.xticks(rotation=45)
+        
+        # Plot 2: Keyword mentions
+        plt.subplot(2, 1, 2)
+        mentions_cols = [col for col in df.columns if col.endswith('_mentions')]
+        for col in mentions_cols:
+            label = col.replace('_mentions', '').capitalize()
+            plt.plot(df['date'], df[col], marker='o', linestyle='-', label=label)
+        
+        plt.title("Keyword Mentions in BOJ Minutes", fontsize=14)
+        plt.xlabel("Date")
+        plt.ylabel("Number of Mentions")
+        plt.legend()
+        plt.grid(True)
+        plt.xticks(rotation=45)
+        
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, "boj_minutes_analysis.png"))
+        print(f"Saved visualization to {os.path.join(output_dir, 'boj_minutes_analysis.png')}")
+        
+        # Create heatmap of mentions
+        plt.figure(figsize=(12, 8))
+        sns.heatmap(df[mentions_cols], cmap="YlOrRd", annot=True, fmt="d")
+        plt.title("Heatmap of Keyword Mentions in BOJ Minutes", fontsize=14)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, "boj_minutes_heatmap.png"))
+        print(f"Saved heatmap to {os.path.join(output_dir, 'boj_minutes_heatmap.png')}")
+        
+    except Exception as e:
+        print(f"Error creating visualizations: {e}")
+    
+    return df
+
+
+def find_key_meeting_changes(df, threshold=0.5):
+    """
+    Identify meetings with significant changes in content from previous meetings.
+    
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        DataFrame with BOJ meeting analysis
+    threshold : float
+        Similarity threshold below which meetings are considered significantly different
+        
+    Returns:
+    --------
+    pandas.DataFrame
+        DataFrame with key meeting changes
+    """
+    if 'similarity_with_previous' not in df.columns:
+        print("Similarity data not available in the DataFrame")
+        return pd.DataFrame()
+    
+    # Find meetings with similarity below threshold
+    key_changes = df[df['similarity_with_previous'] < threshold].copy()
+    
+    if key_changes.empty:
+        print(f"No meetings found with similarity below {threshold}")
+        return key_changes
+    
+    # Add previous meeting date for reference
+    key_changes['previous_meeting_date'] = key_changes['date'].shift(1)
+    
+    # Calculate keyword changes
+    mention_cols = [col for col in df.columns if col.endswith('_mentions')]
+    
+    for col in mention_cols:
+        df[f'{col}_change'] = df[col] - df[col].shift(1)
+        key_changes[f'{col}_change'] = key_changes[col] - df.loc[key_changes.index - 1, col].values
+    
+    print(f"Found {len(key_changes)} meetings with significant content changes")
+    return key_changes
+
 def analyze_meeting_texts_all_formats(pdf_dir=PDF_DIR, max_pages=5, use_ocr=True):
     """
     Process BOJ meeting PDFs and calculate text similarities, handling different file naming formats
