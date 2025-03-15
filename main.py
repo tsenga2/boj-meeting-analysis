@@ -286,25 +286,25 @@ def download_boj_press_conferences(start_year, end_year):
 
         # Find all links that match the pattern for press conference PDFs
         # Press Conference
-        pdf_links = soup.find_all('a', href=re.compile(r'/about/press/kaiken_\d{4}/kk\d+[ab]\.pdf$'))
+        #pdf_links = soup.find_all('a', href=re.compile(r'/about/press/kaiken_\d{4}/kk\d+[ab]\.pdf$'))
         # Minutes
         pdf_links_g = soup.find_all('a', href=re.compile(r'/mopo/mpmsche_minu/minu_\d{4}/g\d+\.pdf$'))
 
-        print(f"Found {len(pdf_links)} potential PDF links for press conferences")
+        #print(f"Found {len(pdf_links)} potential PDF links for press conferences")
         print(f"Found {len(pdf_links_g)} potential PDF links for minutes")
 
-        for link in pdf_links:
-            pdf_url = f"{base_url}{link['href']}"
-            year_match = re.search(r'kaiken_(\d{4})', pdf_url)
+        #for link in pdf_links:
+        #    pdf_url = f"{base_url}{link['href']}"
+        #    year_match = re.search(r'kaiken_(\d{4})', pdf_url)
 
-            if year_match:
-                year = int(year_match.group(1))
+        #    if year_match:
+        #        year = int(year_match.group(1))
 
                 # Only download PDFs within the specified year range
-                if start_year <= year <= end_year:
-                    filename = os.path.join(PDF_DIR, f"press_conference_{os.path.basename(pdf_url)}")
-                    if download_pdf(pdf_url, filename):
-                        pdfs_downloaded += 1
+        #        if start_year <= year <= end_year:
+        #            filename = os.path.join(PDF_DIR, f"press_conference_{os.path.basename(pdf_url)}")
+        #            if download_pdf(pdf_url, filename):
+        #                pdfs_downloaded += 1
 
         for link in pdf_links_g:
             pdf_url = f"{base_url}{link['href']}"
