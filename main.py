@@ -1605,62 +1605,40 @@ def main():
     
     # Step 1: Get BOJ meeting dates
     print("\nSTEP 1: Getting BOJ meeting dates")
-    meeting_dates = get_boj_meeting_dates()
+    meeting_dates = get_boj_meeting_dates(output_dir=OUTPUT_DIR)
     if not meeting_dates:
         print("Error: Failed to retrieve BOJ meeting dates. Exiting.")
         return
     
-    # Step 2: Ask user if they want to download PDFs
-    if os.path.exists(PDF_DIR) and any(f.endswith('.pdf') for f in os.listdir(PDF_DIR)):
-        pdf_count = len([f for f in os.listdir(PDF_DIR) if f.endswith('.pdf')])
-        print(f"\nFound {pdf_count} existing PDFs in {PDF_DIR}")
-        
-        if not IN_COLAB:  # Only ask if running locally
-            download_choice = input("Do you want to download more BOJ meeting PDFs? (y/n): ").strip().lower()
-            if download_choice == 'y':
-                start_year = int(input("Enter start year (1998-2014): "))
-                end_year = int(input("Enter end year (1998-2014): "))
-                download_boj_pdfs(years=range(start_year, end_year + 1))
-    else:
-        print("\nNo existing PDFs found.")
-        if not IN_COLAB:  # Only ask if running locally
-            download_choice = input("Do you want to download BOJ meeting PDFs? (y/n): ").strip().lower()
-            if download_choice == 'y':
-                download_boj_pdfs()  # Use default years
+    # Step 2: Download BOJ meeting PDFs
+    print("\nSTEP 2: Downloading BOJ meeting PDFs")
+    # Use specific year range as in the notebook (adjust as needed)
+    download_boj_pdfs(range(2006, 2010))
     
-    # Step 3: Analyze meeting texts and calculate similarities if Japanese text processing is available
-    print("\nSTEP 3: Analyzing meeting texts")
-    if JAPANESE_TEXT_AVAILABLE:
-        text_df = analyze_meeting_texts(max_pages=5)  # Adjust max_pages as needed
-    else:
-        print("Skipping text analysis (Japanese text processing modules not available)")
-        
-        # Check if existing analysis is available
-        text_analysis_path = os.path.join(OUTPUT_DIR, 'boj_text_analysis.csv')
-        if os.path.exists(text_analysis_path):
-            print(f"Loading existing text analysis from {text_analysis_path}")
-            text_df = pd.read_csv(text_analysis_path)
-            text_df['date'] = pd.to_datetime(text_df['date'])
-        else:
-            print("No existing text analysis found")
-            text_df = pd.DataFrame()
+    # Step 3: Download BOJ press conferences
+    print("\nSTEP 3: Downloading BOJ press conferences")
+    download_boj_press_conferences(2010, 2024)
     
-    # Step 4: Fetch market data
-    print("\nSTEP 4: Fetching market data")
+    # Step 4: Analyze meeting texts using extract_boj_minutes_text
+    print("\nSTEP 4: Analyzing meeting texts")
+    text_df = extract_boj_minutes_text(pdf_dir=PDF_DIR, output_dir=OUTPUT_DIR)
+    
+    # Step 5: Fetch market data
+    print("\nSTEP 5: Fetching market data")
     market_data = fetch_market_data()
     
-    # Step 5: Calculate market statistics between meetings
-    print("\nSTEP 5: Calculating inter-meeting market statistics")
+    # Step 6: Calculate market statistics between meetings
+    print("\nSTEP 6: Calculating inter-meeting market statistics")
     market_stats = calculate_inter_meeting_stats(market_data, meeting_dates)
     
-    # Step 6: Combine text analysis and market statistics if both are available
-    print("\nSTEP 6: Combining text and market analyses")
+    # Step 7: Combine text analysis and market statistics if both are available
+    print("\nSTEP 7: Combining text and market analyses")
     if not text_df.empty and not market_stats.empty:
         combined_df = combine_text_and_market_analysis(text_df, market_stats)
         
-        # Step 7: Analyze relationship between meeting similarity and market outcomes
+        # Step 8: Analyze relationship between meeting similarity and market outcomes
         if not combined_df.empty:
-            print("\nSTEP 7: Analyzing relationship between meeting similarity and market outcomes")
+            print("\nSTEP 8: Analyzing relationship between meeting similarity and market outcomes")
             correlation_df, group_stats = analyze_similarity_market_relationship(combined_df)
             
             # Display summary results
