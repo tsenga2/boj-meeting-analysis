@@ -154,7 +154,7 @@ brew install tesseract tesseract-lang
 
 ## Usage
 
-### Using the dedicated textanalysis environment (Option 1)
+### Option 1: Using the dedicated textanalysis environment
 
 1. Navigate to your project directory and activate the environment:
 
@@ -169,7 +169,7 @@ source ./activate_textanalysis.sh
 python main.py
 ```
 
-### Using a virtual environment (Option 2)
+### Option 2: Using a virtual environment
 
 1. Navigate to your project directory and activate the environment:
 
@@ -186,6 +186,30 @@ source venv/bin/activate
 ```bash
 python main.py
 ```
+
+### Option 3: Using Google Colab with main.ipynb
+
+1. Upload the main.ipynb notebook to Google Colab
+2. Mount your Google Drive (required for saving outputs):
+   ```python
+   from google.colab import drive
+   drive.mount('/content/drive')
+   ```
+
+3. Install the required dependencies:
+   ```python
+   !pip install numpy pandas matplotlib seaborn scikit-learn tqdm requests beautifulsoup4 lxml yfinance pandas-datareader PyPDF2 pdfminer.six pymupdf pikepdf pdf2image pytesseract mecab-python3
+   ```
+
+4. Install system dependencies:
+   ```python
+   !apt-get update
+   !apt-get install -y tesseract-ocr tesseract-ocr-jpn poppler-utils mecab libmecab-dev mecab-ipadic-utf8
+   ```
+
+5. Run the analysis code cells in the notebook
+
+The notebook provides the same functionality as the script but allows for interactive exploration of the data and visualizations.
 
 ### What the script does
 
@@ -368,6 +392,8 @@ chmod +x ~/BOJ_Analysis/activate_textanalysis.sh
 
 ## 使用方法
 
+### 方法1: 専用のtextanalysis環境を使用
+
 1. プロジェクトディレクトリに移動し、環境を有効化：
 
 ```bash
@@ -381,18 +407,47 @@ source ./activate_textanalysis.sh
 python main.py
 ```
 
-スクリプトは次のステップを実行します：
-- 日銀会合の日程をダウンロード
-- 必要に応じて日銀会合のPDFをダウンロード
-- 会合テキストを分析してテキスト類似性を計算
-- 市場データを取得
-- 会合間の市場統計を計算
-- テキスト分析と市場分析を組み合わせる
-- 会合の類似性と市場結果の関係を分析
+### 方法2: 仮想環境を使用
 
-結果は`BOJ_Analysis/output`ディレクトリに保存されます：
-- 分析データを含むCSVファイル
-- 主要な発見の可視化
+1. プロジェクトディレクトリに移動し、環境を有効化：
+
+```bash
+cd ~/BOJ_Analysis
+# Windowsの場合
+venv\Scripts\activate
+# macOS/Linuxの場合
+source venv/bin/activate
+```
+
+2. メインスクリプトを実行：
+
+```bash
+python main.py
+```
+
+### 方法3: Google Colabとmain.ipynbを使用
+
+1. main.ipynbノートブックをGoogle Colabにアップロード
+2. Google Driveをマウント（出力の保存に必要）：
+   ```python
+   from google.colab import drive
+   drive.mount('/content/drive')
+   ```
+
+3. 必要な依存関係をインストール：
+   ```python
+   !pip install numpy pandas matplotlib seaborn scikit-learn tqdm requests beautifulsoup4 lxml yfinance pandas-datareader PyPDF2 pdfminer.six pymupdf pikepdf pdf2image pytesseract mecab-python3
+   ```
+
+4. システム依存関係をインストール：
+   ```python
+   !apt-get update
+   !apt-get install -y tesseract-ocr tesseract-ocr-jpn poppler-utils mecab libmecab-dev mecab-ipadic-utf8
+   ```
+
+5. ノートブック内の分析コードセルを実行
+
+このノートブックはスクリプトと同じ機能を提供しますが、データと可視化のインタラクティブな探索が可能です。
 
 ## 上級ユーザー向けの注意点
 
