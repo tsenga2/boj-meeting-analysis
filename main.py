@@ -660,6 +660,9 @@ def extract_boj_minutes_text(pdf_dir=PDF_DIR, output_dir=OUTPUT_DIR):
         if 'similarity_with_previous' in df.columns:
             plt.subplot(2, 1, 1)
             
+            # Convert df['date'] to pandas datetime objects for consistent comparison
+            df['date'] = pd.to_datetime(df['date'])
+            
             # Add background colors for governor terms
             for gov in governors:
                 start_date = pd.to_datetime(gov['start'])
