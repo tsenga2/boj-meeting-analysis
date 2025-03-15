@@ -559,7 +559,7 @@ def extract_boj_minutes_text(pdf_dir=PDF_DIR, output_dir=OUTPUT_DIR):
                 print("Trying OCR extraction...")
                 text = process_pdf_with_ocr(pdf_path, max_pages=5)
                 if text.strip():
-                    print(f"Successfully extracted {len(text)} characters with OCR")
+                    print(f"Successfully extracted text with OCR")
             except Exception as e:
                 print(f"OCR extraction failed: {e}")
         
@@ -644,21 +644,62 @@ def extract_boj_minutes_text(pdf_dir=PDF_DIR, output_dir=OUTPUT_DIR):
         # Set up the visualization style
         sns.set(style="whitegrid")
         
-        # Create mentions over time chart
+        # Define BOJ governors and their terms
+        governors = [
+            {"name": "Masaru Hayami", "start": "1998-03-20", "end": "2003-03-19", "color": "lightblue"},
+            {"name": "Toshihiko Fukui", "start": "2003-03-20", "end": "2008-03-19", "color": "lightgreen"},
+            {"name": "Masaaki Shirakawa", "start": "2008-04-09", "end": "2013-03-19", "color": "lightyellow"},
+            {"name": "Haruhiko Kuroda", "start": "2013-03-20", "end": "2023-04-08", "color": "lightpink"},
+            {"name": "Kazuo Ueda", "start": "2023-04-09", "end": "2028-04-08", "color": "lavender"}  # Current governor
+        ]
+        
+        # Create trend visualization
         plt.figure(figsize=(14, 10))
         
         # Plot 1: Similarity
         if 'similarity_with_previous' in df.columns:
             plt.subplot(2, 1, 1)
+            
+            # Add background colors for governor terms
+            for gov in governors:
+                start_date = pd.to_datetime(gov['start'])
+                end_date = pd.to_datetime(gov['end'])
+                
+                # Only show terms that overlap with our data period
+                if start_date <= df['date'].max() and end_date >= df['date'].min():
+                    plt.axvspan(
+                        max(start_date, df['date'].min()), 
+                        min(end_date, df['date'].max()), 
+                        alpha=0.3, 
+                        color=gov['color'], 
+                        label=gov['name']
+                    )
+            
             plt.plot(df['date'], df['similarity_with_previous'], marker='o', linestyle='-', color='blue')
             plt.title("Text Similarity Between Consecutive BOJ Minutes", fontsize=14)
             plt.ylabel("Cosine Similarity")
             plt.grid(True)
             plt.xticks(rotation=45)
+            plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=3)
         
         # Plot 2: Keyword mentions
         plt.subplot(2, 1, 2)
         mentions_cols = [col for col in df.columns if col.endswith('_mentions')]
+        
+        # Add background colors for governor terms here too
+        for gov in governors:
+            start_date = pd.to_datetime(gov['start'])
+            end_date = pd.to_datetime(gov['end'])
+            
+            # Only show terms that overlap with our data period
+            if start_date <= df['date'].max() and end_date >= df['date'].min():
+                plt.axvspan(
+                    max(start_date, df['date'].min()), 
+                    min(end_date, df['date'].max()), 
+                    alpha=0.3, 
+                    color=gov['color']
+                )
+        
         for col in mentions_cols:
             label = col.replace('_mentions', '').capitalize()
             plt.plot(df['date'], df[col], marker='o', linestyle='-', label=label)
