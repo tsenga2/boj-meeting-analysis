@@ -2,6 +2,8 @@
 
 ![BOJ Minutes Analysis](boj_minutes_analysis.png)
 
+![BOJ Minutes Analysis](market_indices_analysis.png)
+
 ## Overview
 This project analyzes how changes in Bank of Japan (BOJ) monetary policy meeting content correlate with financial market movements. It combines text similarity analysis of meeting minutes with market statistics to identify patterns between policy language changes and market outcomes.
 
