@@ -411,17 +411,102 @@ def extract_boj_minutes_text(pdf_dir=PDF_DIR, output_dir=OUTPUT_DIR):
     # Initialize results list
     data = []
     
-    # Define Japanese keyword patterns to look for - EXPANDED LIST
+    # Define Japanese keyword patterns to look for - COMPLETE CATEGORIES
     japanese_keywords = {
-        'inflation': ['インフレ', '物価上昇', '物価', '上昇率', 'CPI', '消費者物価', '物価動向', '物価安定', '物価目標', '物価見通し'],
-        'deflation': ['デフレ', '物価下落', '物価下押し', 'デフレ懸念', 'デフレリスク', 'デフレ圧力', 'デフレ脱却'],
-        'fx': ['為替', '円相場', 'ドル円', 'ユーロ円', '円レート', '円安', '円高', '為替相場', '為替レート', '為替動向', '為替市場'],
-        'interest_rate': ['金利', '利率', '利回り', '政策金利', '長期金利', '短期金利', '金利水準', '金利動向', '金利政策', '金利引下げ', '金利引上げ'],
-        'economy': ['景気', '経済情勢', '経済状況', '景気回復', '景気拡大', '景気後退', '経済活動', 'GDP', '経済成長', '景気判断', '景気見通し', '経済見通し'],
-        'monetary_policy': ['金融政策', '金融緩和', '金融引き締め', '量的緩和', '質的緩和', 'イールドカーブ', '長期国債', 'ETF', 'リート', 'コアCPI', '金融市場'],
-        'financial_stability': ['金融安定', '金融システム', '金融機関', '銀行', '信用', 'リスク', 'バブル', '資産価格', '金融規制', '金融監督'],
-        'wages': ['賃金', '給与', '所得', '労働市場', '雇用', '失業率', '労働力', '労働生産性', '賃金上昇', '賃金動向'],
-        'global_economy': ['世界経済', '海外経済', '国際経済', 'グローバル', '海外市場', '国際金融', '海外景気', '世界貿易', '国際収支']
+        'インフレ関連': [
+            'インフレ', '上昇圧力', '上昇率', '期待', 'インフレーション', '物価上昇',
+            'インフレ期待', 'インフレ予想', 'インフレターゲティング', 'CPI', '消費者物価'
+        ],
+        'デフレ関連': [
+            'デフレ', '下落圧力', '懸念', 'デフレーション', '物価下落', '物価下押し',
+            'デフレスパイラル'
+        ],
+        '為替関連': [
+            '為替', '円相場', '円レート', 'ドル円', '円ドル', 'ユーロ円', '円安', '円高'
+        ],
+        '金利関連': [
+            '金利', '利率', '利回り', 'イールド', '貸出', '預金', '政策金利', '短期',
+            '長期', 'コールレート', '国債'
+        ],
+        '景気関連': [
+            '景気動向', '景況', '経済情勢', '経済状況', '景気', '経済活動', '需給ギャップ',
+            'GDP'
+        ],
+        '物価関連': [
+            '物価', '消費者', '生産者', '卸売', '国内企業', '価格', '商品', '製品',
+            '資産', '土地', '住宅', '輸出', '輸入'
+        ],
+        '消費関連': [
+            '消費', '個人消費', '家計', '消費者', 'マインド', '賃金'
+        ],
+        '金融': [
+            '金融', '政策', '量的', '質的', 'マネー', '通貨', 'マネタリーベース',
+            'ベースマネー'
+        ],
+        '金融緩和関連': [
+            '金融緩和', '量的緩和', '質的緩和', '緩和的', '緩和'
+        ],
+        '金融引き締め': [
+            '金融引き締め', '量的縮小', '量的引き締め', '引締', '資金吸収'
+        ],
+        '中央銀行': [
+            '中央銀行'
+        ],
+        '政府': [
+            '政府', '財政'
+        ],
+        '予想関連': [
+            '予想', '見通し', '見込み', '想定', '期待', '見通し', '期待'
+        ],
+        '投資関連': [
+            '投資', '設備投資', '資本投資', '企業', '民間', '公共投資'
+        ],
+        '中小企業関連': [
+            '中小企業', '人手', '資金繰り', '事業継承', '生産性向上', '中小事業者'
+        ],
+        '生産関連': [
+            '生産', '鉱工業', '工業', '製造', '設備', '収益', '輸出'
+        ],
+        '雇用関連': [
+            '雇用', '正規', '非正規', '求人', '人口', '賃金'
+        ],
+        '失業関連': [
+            '失業', '構造的', '摩擦的', '求職'
+        ],
+        '金融機関': [
+            '金融機関'
+        ],
+        '株式': [
+            '株式', '株', '証券会社'
+        ],
+        'その他': [
+            'アンカー', 'ノミナルアンカー'
+        ]
+    }
+    
+    # Dictionary to map Japanese category names to English
+    category_names_en = {
+        'インフレ関連': 'Inflation-related',
+        'デフレ関連': 'Deflation-related',
+        '為替関連': 'Exchange Rate-related',
+        '金利関連': 'Interest Rate-related',
+        '景気関連': 'Economic Conditions',
+        '物価関連': 'Price-related',
+        '消費関連': 'Consumption-related',
+        '金融': 'Financial',
+        '金融緩和関連': 'Monetary Easing',
+        '金融引き締め': 'Monetary Tightening',
+        '中央銀行': 'Central Bank',
+        '政府': 'Government',
+        '予想関連': 'Forecast-related',
+        '投資関連': 'Investment-related',
+        '中小企業関連': 'SME-related',
+        '生産関連': 'Production-related',
+        '雇用関連': 'Employment-related',
+        '失業関連': 'Unemployment-related',
+        '金融機関': 'Financial Institutions',
+        '株式': 'Stock Market',
+        'その他': 'Others'
     }
     
     # Process each PDF with progress bar
@@ -635,11 +720,6 @@ def extract_boj_minutes_text(pdf_dir=PDF_DIR, output_dir=OUTPUT_DIR):
             print(f"Error calculating similarity: {e}")
             df['similarity_with_previous'] = 0
     
-    # Save results to CSV
-    output_path = os.path.join(output_dir, 'boj_text_analysis_improved.csv')
-    df.to_csv(output_path, index=False)
-    print(f"Saved analysis results to {output_path}")
-    
     # Create visualizations
     try:
         import matplotlib.pyplot as plt
@@ -647,6 +727,7 @@ def extract_boj_minutes_text(pdf_dir=PDF_DIR, output_dir=OUTPUT_DIR):
         
         # Set up the visualization style
         sns.set(style="whitegrid")
+        plt.rcParams['figure.figsize'] = (15, 32)  # Increased height for more categories
         
         # Define BOJ governors and their terms
         governors = [
@@ -654,72 +735,91 @@ def extract_boj_minutes_text(pdf_dir=PDF_DIR, output_dir=OUTPUT_DIR):
             {"name": "Toshihiko Fukui", "start": "2003-03-20", "end": "2008-03-19", "color": "lightgreen"},
             {"name": "Masaaki Shirakawa", "start": "2008-04-09", "end": "2013-03-19", "color": "lightyellow"},
             {"name": "Haruhiko Kuroda", "start": "2013-03-20", "end": "2023-04-08", "color": "lightpink"},
-            {"name": "Kazuo Ueda", "start": "2023-04-09", "end": "2028-04-08", "color": "lavender"}  # Current governor
+            {"name": "Kazuo Ueda", "start": "2023-04-09", "end": "2028-04-08", "color": "lavender"}
         ]
         
-        # Create trend visualization
-        plt.figure(figsize=(14, 10))
+        # Convert df['date'] to pandas datetime objects
+        df['date'] = pd.to_datetime(df['date'])
         
-        # Plot 1: Similarity
-        if 'similarity_with_previous' in df.columns:
-            plt.subplot(2, 1, 1)
+        # Create subplots for similarity and keyword groups
+        num_groups = len(japanese_keywords)
+        num_cols = 2
+        num_rows = ((num_groups + 1) // 2) + 1  # Add 1 row for similarity plot
+        
+        fig = plt.figure(figsize=(15, 4*num_rows))
+        gs = fig.add_gridspec(num_rows, num_cols, height_ratios=[1] + [1]*(num_rows-1))
+        
+        # First create the similarity plot spanning both columns
+        ax_sim = fig.add_subplot(gs[0, :])
+        
+        # Add background colors for governor terms in similarity plot
+        for gov in governors:
+            start_date = pd.to_datetime(gov['start'])
+            end_date = pd.to_datetime(gov['end'])
             
-            # Convert df['date'] to pandas datetime objects for consistent comparison
-            df['date'] = pd.to_datetime(df['date'])
+            if start_date <= df['date'].max() and end_date >= df['date'].min():
+                ax_sim.axvspan(
+                    max(start_date, df['date'].min()),
+                    min(end_date, df['date'].max()),
+                    alpha=0.3,
+                    color=gov['color'],
+                    label=gov['name']
+                )
+        
+        # Plot similarity
+        ax_sim.plot(df['date'], df['similarity_with_previous'], 
+                   marker='o', linestyle='-', color='blue', linewidth=1.5)
+        ax_sim.set_title("Text Similarity Between Consecutive BOJ Minutes", fontsize=12)
+        ax_sim.set_ylabel("Cosine Similarity")
+        ax_sim.tick_params(axis='x', rotation=45)
+        ax_sim.grid(True, alpha=0.3)
+        ax_sim.legend(loc='center left', bbox_to_anchor=(1.02, 0.5))
+
+        # Create remaining subplots for keyword groups
+        axes = [fig.add_subplot(gs[i//2+1, i%2]) for i in range(num_groups)]
+        
+        # Plot each group
+        for idx, (group_name, _) in enumerate(japanese_keywords.items()):
+            ax = axes[idx]
+            col_name = f"{group_name}_mentions"
             
             # Add background colors for governor terms
             for gov in governors:
                 start_date = pd.to_datetime(gov['start'])
                 end_date = pd.to_datetime(gov['end'])
                 
-                # Only show terms that overlap with our data period
                 if start_date <= df['date'].max() and end_date >= df['date'].min():
-                    plt.axvspan(
-                        max(start_date, df['date'].min()), 
-                        min(end_date, df['date'].max()), 
-                        alpha=0.3, 
-                        color=gov['color'], 
-                        label=gov['name']
+                    ax.axvspan(
+                        max(start_date, df['date'].min()),
+                        min(end_date, df['date'].max()),
+                        alpha=0.3,
+                        color=gov['color']
                     )
             
-            plt.plot(df['date'], df['similarity_with_previous'], marker='o', linestyle='-', color='blue')
-            plt.title("Text Similarity Between Consecutive BOJ Minutes", fontsize=14)
-            plt.ylabel("Cosine Similarity")
-            plt.grid(True)
-            plt.xticks(rotation=45)
-            plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=3)
+            # Plot keyword mentions
+            ax.plot(df['date'], df[col_name], marker='o', linestyle='-', linewidth=1.5)
+            ax.set_title(f'{category_names_en[group_name]}', fontsize=12)
+            ax.set_ylabel('Mentions')
+            ax.tick_params(axis='x', rotation=45)
+            ax.grid(True, alpha=0.3)
         
-        # Plot 2: Keyword mentions
-        plt.subplot(2, 1, 2)
-        mentions_cols = [col for col in df.columns if col.endswith('_mentions')]
+        # Add overall title
+        fig.suptitle('BOJ Minutes Analysis: Text Similarity and Keyword Mentions by Category', 
+                    fontsize=16, y=0.95)
         
-        # Add background colors for governor terms here too
-        for gov in governors:
-            start_date = pd.to_datetime(gov['start'])
-            end_date = pd.to_datetime(gov['end'])
-            
-            # Only show terms that overlap with our data period
-            if start_date <= df['date'].max() and end_date >= df['date'].min():
-                plt.axvspan(
-                    max(start_date, df['date'].min()), 
-                    min(end_date, df['date'].max()), 
-                    alpha=0.3, 
-                    color=gov['color']
-                )
-        
-        for col in mentions_cols:
-            label = col.replace('_mentions', '').capitalize()
-            plt.plot(df['date'], df[col], marker='o', linestyle='-', label=label)
-        
-        plt.title("Keyword Mentions in BOJ Minutes", fontsize=14)
-        plt.xlabel("Date")
-        plt.ylabel("Number of Mentions")
-        plt.legend()
-        plt.grid(True)
-        plt.xticks(rotation=45)
+        # Add legend for governors
+        handles = [plt.Rectangle((0,0),1,1, facecolor=gov['color'], alpha=0.3) 
+                  for gov in governors]
+        labels = [gov['name'] for gov in governors]
+        fig.legend(handles, labels, 
+                  loc='center left', 
+                  bbox_to_anchor=(1.02, 0.5),
+                  title="BOJ Governors")
         
         plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, "boj_minutes_analysis.png"))
+        plt.savefig(os.path.join(output_dir, "boj_minutes_analysis.png"), 
+                   bbox_inches='tight', dpi=300,
+                   facecolor='white')
         print(f"Saved visualization to {os.path.join(output_dir, 'boj_minutes_analysis.png')}")
         
     except Exception as e:
