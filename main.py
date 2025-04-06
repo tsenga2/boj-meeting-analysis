@@ -411,13 +411,17 @@ def extract_boj_minutes_text(pdf_dir=PDF_DIR, output_dir=OUTPUT_DIR):
     # Initialize results list
     data = []
     
-    # Define Japanese keyword patterns to look for
+    # Define Japanese keyword patterns to look for - EXPANDED LIST
     japanese_keywords = {
-        'inflation': ['インフレ', '物価上昇', '物価', '上昇率', 'CPI', '消費者物価'],
-        'deflation': ['デフレ', '物価下落', '物価下押し'],
-        'fx': ['為替', '円相場', 'ドル円', 'ユーロ円', '円レート', '円安', '円高'],
-        'interest_rate': ['金利', '利率', '利回り', '政策金利', '長期金利', '短期金利'],
-        'economy': ['景気', '経済情勢', '経済状況', '景気回復', '景気拡大', '景気後退', '経済活動', 'GDP']
+        'inflation': ['インフレ', '物価上昇', '物価', '上昇率', 'CPI', '消費者物価', '物価動向', '物価安定', '物価目標', '物価見通し'],
+        'deflation': ['デフレ', '物価下落', '物価下押し', 'デフレ懸念', 'デフレリスク', 'デフレ圧力', 'デフレ脱却'],
+        'fx': ['為替', '円相場', 'ドル円', 'ユーロ円', '円レート', '円安', '円高', '為替相場', '為替レート', '為替動向', '為替市場'],
+        'interest_rate': ['金利', '利率', '利回り', '政策金利', '長期金利', '短期金利', '金利水準', '金利動向', '金利政策', '金利引下げ', '金利引上げ'],
+        'economy': ['景気', '経済情勢', '経済状況', '景気回復', '景気拡大', '景気後退', '経済活動', 'GDP', '経済成長', '景気判断', '景気見通し', '経済見通し'],
+        'monetary_policy': ['金融政策', '金融緩和', '金融引き締め', '量的緩和', '質的緩和', 'イールドカーブ', '長期国債', 'ETF', 'リート', 'コアCPI', '金融市場'],
+        'financial_stability': ['金融安定', '金融システム', '金融機関', '銀行', '信用', 'リスク', 'バブル', '資産価格', '金融規制', '金融監督'],
+        'wages': ['賃金', '給与', '所得', '労働市場', '雇用', '失業率', '労働力', '労働生産性', '賃金上昇', '賃金動向'],
+        'global_economy': ['世界経済', '海外経済', '国際経済', 'グローバル', '海外市場', '国際金融', '海外景気', '世界貿易', '国際収支']
     }
     
     # Process each PDF with progress bar
@@ -871,7 +875,7 @@ def analyze_keyword_trends(df, window_size=3):
     
     return df
 
-def analyze_meeting_texts_all_formats(pdf_dir=PDF_DIR, max_pages=5, use_ocr=True):
+def analyze_meeting_texts_all_formats(pdf_dir=PDF_DIR, max_pages=50, use_ocr=True):
     """
     Process BOJ meeting PDFs and calculate text similarities, handling different file naming formats
     
@@ -1594,6 +1598,99 @@ def analyze_similarity_market_relationship(combined_df):
     
     return correlation_df, group_stats
 
+def plot_market_indices_analysis(market_data, output_dir=OUTPUT_DIR):
+    """
+    Create and save a figure showing means and volatilities of market indices
+    
+    Parameters:
+    -----------
+    market_data : pandas.DataFrame
+        DataFrame containing market data
+    output_dir : str
+        Directory to save the output figure
+    """
+    try:
+        # Set up the visualization style
+        plt.style.use('seaborn-v0_8-whitegrid')
+        
+        # Define BOJ governors and their terms
+        governors = [
+            {"name": "Masaru Hayami", "start": "1998-03-20", "end": "2003-03-19", "color": "lightblue"},
+            {"name": "Toshihiko Fukui", "start": "2003-03-20", "end": "2008-03-19", "color": "lightgreen"},
+            {"name": "Masaaki Shirakawa", "start": "2008-04-09", "end": "2013-03-19", "color": "lightyellow"},
+            {"name": "Haruhiko Kuroda", "start": "2013-03-20", "end": "2023-04-08", "color": "lightpink"},
+            {"name": "Kazuo Ueda", "start": "2023-04-09", "end": "2028-04-08", "color": "lavender"}  # Current governor
+        ]
+        
+        # Create figure with 2x3 subplots (means and volatilities for each variable)
+        fig, axes = plt.subplots(2, 3, figsize=(20, 12))
+        fig.suptitle('Market Indices Analysis', fontsize=16)
+        
+        # Plot means
+        axes[0,0].plot(market_data.index, market_data['nikkei'])
+        axes[0,0].set_title('Nikkei 225 Mean')
+        axes[0,0].set_ylabel('Index Value')
+        axes[0,0].tick_params(axis='x', rotation=45)
+        
+        axes[0,1].plot(market_data.index, market_data['usdjpy'])
+        axes[0,1].set_title('USD/JPY Mean')
+        axes[0,1].set_ylabel('Exchange Rate')
+        axes[0,1].tick_params(axis='x', rotation=45)
+        
+        axes[0,2].plot(market_data.index, market_data['jgb'])
+        axes[0,2].set_title('10-year JGB Mean')
+        axes[0,2].set_ylabel('Yield (%)')
+        axes[0,2].tick_params(axis='x', rotation=45)
+        
+        # Plot volatilities (using rolling standard deviation of returns)
+        window = 30  # 30-day rolling window
+        
+        axes[1,0].plot(market_data.index, market_data['nikkei_return'].rolling(window=window).std() * 100)
+        axes[1,0].set_title('Nikkei 225 Volatility (30-day)')
+        axes[1,0].set_ylabel('Volatility (%)')
+        axes[1,0].tick_params(axis='x', rotation=45)
+        
+        axes[1,1].plot(market_data.index, market_data['usdjpy_return'].rolling(window=window).std() * 100)
+        axes[1,1].set_title('USD/JPY Volatility (30-day)')
+        axes[1,1].set_ylabel('Volatility (%)')
+        axes[1,1].tick_params(axis='x', rotation=45)
+        
+        axes[1,2].plot(market_data.index, market_data['jgb_return'].rolling(window=window).std() * 100)
+        axes[1,2].set_title('10-year JGB Volatility (30-day)')
+        axes[1,2].set_ylabel('Volatility (%)')
+        axes[1,2].tick_params(axis='x', rotation=45)
+        
+        # Add background colors for governor terms to all subplots
+        for ax in axes.flat:
+            for gov in governors:
+                start_date = pd.to_datetime(gov['start'])
+                end_date = pd.to_datetime(gov['end'])
+                
+                # Only show terms that overlap with our data period
+                if start_date <= market_data.index.max() and end_date >= market_data.index.min():
+                    ax.axvspan(
+                        max(start_date, market_data.index.min()), 
+                        min(end_date, market_data.index.max()), 
+                        alpha=0.3, 
+                        color=gov['color']
+                    )
+        
+        # Add a legend for the governors
+        fig.legend(
+            [plt.Rectangle((0,0),1,1, facecolor=gov['color'], alpha=0.3) for gov in governors],
+            [gov['name'] for gov in governors],
+            loc='center left',
+            bbox_to_anchor=(1.0, 0.5),
+            title="BOJ Governors"
+        )
+        
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, 'market_indices_analysis.png'), bbox_inches='tight')
+        print(f"Saved market indices analysis figure to {os.path.join(output_dir, 'market_indices_analysis.png')}")
+        
+    except Exception as e:
+        print(f"Error creating market indices analysis figure: {e}")
+
 #############################################################
 # Main Execution
 #############################################################
@@ -1629,6 +1726,10 @@ def main():
     # Step 5: Fetch market data
     print("\nSTEP 5: Fetching market data")
     market_data = fetch_market_data()
+    
+    # Step 5.1: Create and save market indices analysis figure
+    print("\nSTEP 5.1: Creating market indices analysis figure")
+    plot_market_indices_analysis(market_data, output_dir=OUTPUT_DIR)
     
     # Step 6: Calculate market statistics between meetings
     print("\nSTEP 6: Calculating inter-meeting market statistics")
