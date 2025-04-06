@@ -84,34 +84,42 @@ The project analyzes BOJ meeting minutes by tracking mentions of keywords across
 
 ## Market Indices Analysis
 
-The project tracks and analyzes three key market indices to understand the impact of BOJ policy discussions:
+The project tracks and analyzes three key market indices to understand the impact of BOJ policy discussions. For each index, we calculate several metrics using the following formulas:
+
+### Common Calculations
+- **Daily Returns**: For any market variable \(P_t\), the daily return \(r_t\) is calculated as:
+  \[r_t = \frac{P_t - P_{t-1}}{P_{t-1}} \times 100\%\]
+
+- **30-day Rolling Volatility**: The annualized standard deviation of daily returns over a 30-day window:
+  \[\sigma_t = \sqrt{\frac{252}{30}\sum_{i=t-29}^t (r_i - \bar{r})^2}\]
+  where \(\bar{r}\) is the mean return over the 30-day window and 252 is the number of trading days per year.
 
 ### 1. Nikkei 225 Index (日経平均株価)
 - **Data Source**: Yahoo Finance (^N225)
 - **Metrics Tracked**:
-  - Daily closing prices
-  - Daily returns
-  - 30-day rolling volatility
-  - Mean values between meetings
-  - Cumulative returns between meetings
+  - Daily closing prices \(P_t\)
+  - Daily returns \(r_t\) as defined above
+  - 30-day rolling volatility \(\sigma_t\) as defined above
+  - Mean values between meetings: \(\bar{P} = \frac{1}{n}\sum_{t=1}^n P_t\)
+  - Cumulative returns between meetings: \(R_c = \prod_{t=1}^n (1 + r_t) - 1\)
 
 ### 2. USD/JPY Exchange Rate (米ドル/円レート)
 - **Data Source**: FRED (DEXJPUS)
 - **Metrics Tracked**:
-  - Daily exchange rates
-  - Daily returns
-  - 30-day rolling volatility
-  - Mean values between meetings
-  - Cumulative returns between meetings
+  - Daily exchange rates \(E_t\)
+  - Daily returns \(r_t\) calculated using the same formula
+  - 30-day rolling volatility \(\sigma_t\) as defined above
+  - Mean values between meetings: \(\bar{E} = \frac{1}{n}\sum_{t=1}^n E_t\)
+  - Cumulative returns between meetings: \(R_c = \prod_{t=1}^n (1 + r_t) - 1\)
 
 ### 3. 10-year Japanese Government Bond Yield (10年国債利回り)
 - **Data Source**: FRED (IRLTLT01JPM156N)
 - **Metrics Tracked**:
-  - Daily yield values
-  - Daily changes
-  - 30-day rolling volatility
-  - Mean values between meetings
-  - Cumulative changes between meetings
+  - Daily yield values \(Y_t\)
+  - Daily changes \(\Delta Y_t = Y_t - Y_{t-1}\)
+  - 30-day rolling volatility of yield changes: \(\sigma_t = \sqrt{\frac{252}{30}\sum_{i=t-29}^t (\Delta Y_i - \overline{\Delta Y})^2}\)
+  - Mean values between meetings: \(\bar{Y} = \frac{1}{n}\sum_{t=1}^n Y_t\)
+  - Cumulative changes between meetings: \(\sum_{t=1}^n \Delta Y_t\)
 
 ### Analysis Periods
 - Market data is analyzed across different BOJ governor terms:
