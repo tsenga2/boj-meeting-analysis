@@ -8,6 +8,127 @@
 ## Overview
 This project analyzes how changes in Bank of Japan (BOJ) monetary policy meeting content correlate with financial market movements. It combines text similarity analysis of meeting minutes with market statistics to identify patterns between policy language changes and market outcomes.
 
+## Keyword Categories and Analysis
+
+The project analyzes BOJ meeting minutes by tracking mentions of keywords across various economic and policy categories:
+
+### Inflation and Price Categories
+1. **Inflation-related (インフレ関連)**
+   - Keywords: インフレ, 上昇圧力, 上昇率, 期待, インフレーション, 物価上昇, インフレ期待, インフレ予想, インフレターゲティング, CPI, 消費者物価
+
+2. **Deflation-related (デフレ関連)**
+   - Keywords: デフレ, 下落圧力, 懸念, デフレーション, 物価下落, 物価下押し, デフレスパイラル
+
+3. **Price-related (物価関連)**
+   - Keywords: 物価, 消費者, 生産者, 卸売, 国内企業, 価格, 商品, 製品, 資産, 土地, 住宅, 輸出, 輸入
+
+### Financial Markets and Policy
+4. **Exchange Rate-related (為替関連)**
+   - Keywords: 為替, 円相場, 円レート, ドル円, 円ドル, ユーロ円, 円安, 円高
+
+5. **Interest Rate-related (金利関連)**
+   - Keywords: 金利, 利率, 利回り, イールド, 貸出, 預金, 政策金利, 短期, 長期, コールレート, 国債
+
+6. **Financial (金融)**
+   - Keywords: 金融, 政策, 量的, 質的, マネー, 通貨, マネタリーベース, ベースマネー
+
+7. **Monetary Easing (金融緩和関連)**
+   - Keywords: 金融緩和, 量的緩和, 質的緩和, 緩和的, 緩和
+
+8. **Monetary Tightening (金融引き締め)**
+   - Keywords: 金融引き締め, 量的縮小, 量的引き締め, 引締, 資金吸収
+
+### Economic Conditions
+9. **Economic Conditions (景気関連)**
+   - Keywords: 景気動向, 景況, 経済情勢, 経済状況, 景気, 経済活動, 需給ギャップ, GDP
+
+10. **Consumption-related (消費関連)**
+    - Keywords: 消費, 個人消費, 家計, 消費者, マインド, 賃金
+
+### Institutional Categories
+11. **Central Bank (中央銀行)**
+    - Keywords: 中央銀行
+
+12. **Government (政府)**
+    - Keywords: 政府, 財政
+
+13. **Financial Institutions (金融機関)**
+    - Keywords: 金融機関
+
+### Business and Production
+14. **Investment-related (投資関連)**
+    - Keywords: 投資, 設備投資, 資本投資, 企業, 民間, 公共投資
+
+15. **SME-related (中小企業関連)**
+    - Keywords: 中小企業, 人手, 資金繰り, 事業継承, 生産性向上, 中小事業者
+
+16. **Production-related (生産関連)**
+    - Keywords: 生産, 鉱工業, 工業, 製造, 設備, 収益, 輸出
+
+### Labor Market
+17. **Employment-related (雇用関連)**
+    - Keywords: 雇用, 正規, 非正規, 求人, 人口, 賃金
+
+18. **Unemployment-related (失業関連)**
+    - Keywords: 失業, 構造的, 摩擦的, 求職
+
+### Market and Other Categories
+19. **Stock Market (株式)**
+    - Keywords: 株式, 株, 証券会社
+
+20. **Forecast-related (予想関連)**
+    - Keywords: 予想, 見通し, 見込み, 想定, 期待, 見通し, 期待
+
+21. **Others (その他)**
+    - Keywords: アンカー, ノミナルアンカー
+
+## Market Indices Analysis
+
+The project tracks and analyzes three key market indices to understand the impact of BOJ policy discussions:
+
+### 1. Nikkei 225 Index (日経平均株価)
+- **Data Source**: Yahoo Finance (^N225)
+- **Metrics Tracked**:
+  - Daily closing prices
+  - Daily returns
+  - 30-day rolling volatility
+  - Mean values between meetings
+  - Cumulative returns between meetings
+
+### 2. USD/JPY Exchange Rate (米ドル/円レート)
+- **Data Source**: FRED (DEXJPUS)
+- **Metrics Tracked**:
+  - Daily exchange rates
+  - Daily returns
+  - 30-day rolling volatility
+  - Mean values between meetings
+  - Cumulative returns between meetings
+
+### 3. 10-year Japanese Government Bond Yield (10年国債利回り)
+- **Data Source**: FRED (IRLTLT01JPM156N)
+- **Metrics Tracked**:
+  - Daily yield values
+  - Daily changes
+  - 30-day rolling volatility
+  - Mean values between meetings
+  - Cumulative changes between meetings
+
+### Analysis Periods
+- Market data is analyzed across different BOJ governor terms:
+  - Masaru Hayami (1998-2003)
+  - Toshihiko Fukui (2003-2008)
+  - Masaaki Shirakawa (2008-2013)
+  - Haruhiko Kuroda (2013-2023)
+  - Kazuo Ueda (2023-present)
+
+### Market Statistics
+For each period between BOJ meetings, the following statistics are calculated:
+- Mean values and returns
+- Volatility measures
+- Cumulative returns
+- Correlation with text similarity scores
+- Impact analysis of significant policy language changes
+
 ## Features
 - Scrape and download BOJ monetary policy meeting dates and minutes
 - Extract and analyze text from BOJ meeting minutes (with Japanese language support)
